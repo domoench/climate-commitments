@@ -102,28 +102,32 @@ export default class ElectedReps extends React.Component {
           className={`results ${
             this.state.offices.length > 0 ? "d-block" : "d-none"
           }`}
-          style={{ marginBottom: "2rem" }}
         >
           <h3>Here is the contact information for your representatives:</h3>
 
-          {this.state.offices.map((office, index) => (
-            <Representative
-              key={index}
-              name={this.state.officials[parseInt(office.officialIndices)].name}
-              title={office.name}
-              phone={
-                this.state.officials[parseInt(office.officialIndices)].phones
-              }
-              website={
-                this.state.officials[parseInt(office.officialIndices)].urls
-              }
-              photo={
-                this.state.officials[parseInt(office.officialIndices)].photoUrl
-              }
-            />
-          ))}
+          <div className="row mb-5">
+            {this.state.offices.map((office, index) => (
+              <Representative
+                key={index}
+                name={
+                  this.state.officials[parseInt(office.officialIndices)].name
+                }
+                title={office.name}
+                phone={
+                  this.state.officials[parseInt(office.officialIndices)].phones
+                }
+                website={
+                  this.state.officials[parseInt(office.officialIndices)].urls
+                }
+                photo={
+                  this.state.officials[parseInt(office.officialIndices)]
+                    .photoUrl
+                }
+              />
+            ))}
+          </div>
 
-          <button className="btn btn-success">Commit to Calling</button>
+          <button className="btn btn-primary mb-5">Commit to Calling</button>
         </div>
 
         <Link to="/">Go back to the homepage</Link>
