@@ -102,6 +102,7 @@ export default class ElectedReps extends React.Component {
           className={`results ${
             this.state.offices.length > 0 ? "d-block" : "d-none"
           }`}
+          style={{ marginBottom: "2rem" }}
         >
           <h3>Here is the contact information for your representatives:</h3>
 
@@ -121,17 +122,8 @@ export default class ElectedReps extends React.Component {
               }
             />
           ))}
-          <p>
-            We all want to feel confident that decisions about the policy to
-            address the climate crisis are being made without undue influence.
-            We suggest you consider asking your political representatives to
-            pledge not to accept donations from fossil fuel companies by taking
-            the No Fossil Fuel Money Pledge. To see whether your representative
-            has already made the pledge--in which case you can thank them
-            instead!--check out this list. You can also let your representatives
-            know that you are a voter or a voter-to-be who prioritizes climate,
-            and advocate for any specific policies you support!
-          </p>
+
+          <button className="btn btn-success">Commit to Calling</button>
         </div>
 
         <Link to="/">Go back to the homepage</Link>
