@@ -127,7 +127,9 @@ export default class ElectedReps extends React.Component {
             ))}
           </div>
 
-          <button className="btn btn-primary mb-5">Commit to Calling</button>
+          <button className="btn btn-primary mb-5 btn-lg btn-block">
+            Commit to Calling
+          </button>
         </div>
 
         <Link to="/">Go back to the homepage</Link>
