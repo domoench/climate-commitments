@@ -18,7 +18,7 @@ const Representative = props => {
           donations from fossil fuel companies by taking the No Fossil Fuel
           Money Pledge.
         </p>
-        <a href={`tel:${props.phone}`} className="btn btn-success">
+        <a href={`tel:${props.phone}`} className="btn btn-outline-success">
           <svg
             id="i-telephone"
             xmlns="http://www.w3.org/2000/svg"
