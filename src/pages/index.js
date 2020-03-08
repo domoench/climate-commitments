@@ -17,6 +17,7 @@ const IndexPage = () => (
       <Image />
     </div>
     <Link to="/elected-reps/">Elected Reps</Link>
+    <Link to="/db-tests/">DB Tests</Link>
   </Layout>
 )
 
