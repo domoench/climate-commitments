@@ -28,7 +28,7 @@ const DBTestsPage = () => {
   commitmentsRef
     .add({ name: 'Evil Doer' })
     .then(ref => { throw new Error('This should not succeed', ref) })
-    .catch(err => { console.log('Write was prevented', err) });
+    .catch(err => { console.log(`Write was prevented ${err}`) });
 
   // Add and create a new collection should not be allowed
 
