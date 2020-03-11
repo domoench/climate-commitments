@@ -1,0 +1,2 @@
+- Created seperate directories for frontend and functions
+- Create a staging project `climate-commitments-staging` to deploy to

@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "climate-commitments"
+    "default": "climate-commitments",
+    "staging": "climate-commitments-staging",
+    "production": "climate-commitments"
   }
 }
