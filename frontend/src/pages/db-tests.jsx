@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import firebase from 'gatsby-plugin-firebase';
+import axios from 'axios';
 
 const runFirebaseCalls = () => {
   // Get the collection
@@ -64,6 +65,10 @@ const DBTestsPage = () => {
     };
 
     console.log('commitmentData', commitmentData);
+    const endpoint = 'http://localhost:5001/climate-commitments-staging/us-central1/createCommitment'
+    axios.post(endpoint, commitmentData)
+      .then(response => console.log(response))
+      .catch(error => console.error(`${error}`));
   }
 
   const handleZipChange = (event) => setZip(event.target.value);

@@ -24,9 +24,11 @@ exports.helloWorld = functions.https.onRequest((request, response) => {
 });
 
 exports.createCommitment = functions.https.onRequest((request, response) => {
+  console.log(request.body);
   // Create the commitment doc
 
   // Increment the aggregate doc
+  response.send('done');
 });
 
 
