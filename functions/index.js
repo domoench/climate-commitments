@@ -24,7 +24,9 @@ exports.helloWorld = functions.https.onRequest((request, response) => {
 });
 
 exports.createCommitment = functions.https.onRequest((request, response) => {
-  console.log(request.body);
+  // TODO Validate recaptcha
+  console.log('body', request.body);
+
   // Create the commitment doc
 
   // Increment the aggregate doc
