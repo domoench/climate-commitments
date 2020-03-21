@@ -8,10 +8,6 @@
     ],
     "rewrites": [
       {
-        "source": "/createCommitment",
-        "function": "createCommitment"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }
