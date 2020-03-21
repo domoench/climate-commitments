@@ -2,22 +2,13 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import withFirebase from '../components/withFirebase';
 
-// TODO Read and understand setting up react for multiple envs
-// https://daveceddia.com/multiple-environments-with-react/
-
-// PROB: Aggregate doc exists but we're not able to fetch via SDK
-//   - Exists: http://localhost:8080/v1/projects/climate-commitments-staging/databases/(default)/documents/aggregate/countsByZip
-//   - Fetching via db.collection('aggregate').doc('countsByZip').get() ain't workin
-//     - Confirmed the port is properly set to 8080 for local dev
-
 const Display = ({ firebase }) => {
   const handleClick = () => {
-    // CANNOT get the firebase SDK to succeed, going to the HTTPS API
-    // const endpoint = 'http://localhost:8080/v1/projects/climate-commitments-staging/databases/(default)/documents/commitments'
-    const endpoint = 'http://localhost:8080/v1/projects/climate-commitments-staging/databases/(default)/documents/aggregate/countsByZip'
-    axios.get(endpoint)
-      .then(response => console.log(response.data.fields))
-      .catch(error => console.error(`${error}`));
+    firebase.firestore().collection('aggregate').doc('countsByZip').get()
+      .then((doc) => {
+        console.log('doc.data()', doc.data());
+      })
+      .catch(err => console.error(err));
   }
 
   return (
@@ -58,16 +49,6 @@ const DBTestsPage = ({ firebase }) => {
       }
     };
 
-    /*
-    const endpoint = 'http://localhost:5001/climate-commitments-staging/us-central1/createCommitment'
-    // const endpoint = `${cloudFunctionsEndpoint()}/createCommitment`;
-    // const endpoint = `/createCommitment`
-    console.log('commitmentData', commitmentData);
-    console.log('endpoint', endpoint);
-    axios.post(endpoint, commitmentData)
-      .then(response => console.log(response))
-      .catch(error => console.error(`${error}`));
-    */
     // https://firebase.google.com/docs/functions/callable
     const createCommitment = firebase.functions().httpsCallable('createCommitment');
     createCommitment(commitmentData)
