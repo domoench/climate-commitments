@@ -8,8 +8,8 @@
     ],
     "rewrites": [
       {
-        "source": "/api/v1/**",
-        "function": "helloWorld"
+        "source": "/createCommitment",
+        "function": "createCommitment"
       },
       {
         "source": "**",

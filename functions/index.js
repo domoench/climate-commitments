@@ -1,37 +1,64 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const express = require('express');
+const cors = require('cors');
 
-const defaultApp = admin.initializeApp(functions.config().firebase);
-const db = defaultApp.firestore();
+const firebaseApp = admin.initializeApp(functions.config().firebase);
+const db = firebaseApp.firestore();
 
-// TODO remove
-exports.helloWorld = functions.https.onRequest((request, response) => {
-  // console.log(`App name: ${defaultApp.name}`);
+const expressApp = express();
+expressApp.use(cors({ origin: true }));
+
+expressApp.post('/', (req, res) => {
+  // TODO Validate recaptcha
+  console.log('body', req.body);
+
+  // Create the commitment doc
   const commitmentsRef = db
     .collection('commitments');
 
-  // Get the collection
   commitmentsRef
-    .get()
-    .then(querySnapshot => {
-      querySnapshot.forEach(doc => {
-        console.log('collection -> doc', doc.data());
-      })
+    .add(req.body) // TODO validate input data fields
+    .then(docRef => {
+      console.log(`Added commitment doc id:${docRef.id}`);
+      res.status(200).send('OK');
       return;
     })
-    .catch(err => { throw new Error(`You messed up: ${err}`) });
-  response.send(`App name: ${defaultApp.name}`);
+    .catch(err => {
+      console.error(err);
+      res.status(500).send('Internal Server Error');
+    });
 });
 
-exports.createCommitment = functions.https.onRequest((request, response) => {
-  // TODO Validate recaptcha
-  console.log('body', request.body);
+exports.createCommitment = functions.https.onRequest(expressApp);
 
-  // Create the commitment doc
+// Firestore change triggered callback
+// https://firebase.google.com/docs/firestore/extend-with-functions
+exports.updateAggregateCounts = functions.firestore
+  .document('commitments/{commitmentId}')
+  .onCreate((snap, context) => {
+    const newValue = snap.data();
 
-  // Increment the aggregate doc
-  response.send('done');
-});
-
+    const countRef = db.collection('aggregate').doc('countsByZip');
+    countRef.get()
+      .then((doc) => {
+        if (doc.exists) {
+          console.log('Incrementing aggregate counts');
+          console.log('db deets', doc._ref._firestore._settings);
+          return countRef.update({
+            callBank: admin.firestore.FieldValue.increment(1),
+            // TODO
+          });
+        } else {
+          console.log('Creating aggregate counts doc');
+          return countRef.set({
+            callBank: 0,
+            // TODO
+          });
+        }
+      })
+      .catch(err => console.error(err));
+      return 0; // TODO
+  })
 
 // TODO: Set up aggregate doc updating via a firestore onCreate trigger: https://firebase.google.com/docs/firestore/extend-with-functions#function_triggers
