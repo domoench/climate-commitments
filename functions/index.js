@@ -1,11 +1,12 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const express = require('express');
-const cors = require('cors');
+// const cors = require('cors');
 
 const firebaseApp = admin.initializeApp(functions.config().firebase);
 const db = firebaseApp.firestore();
 
+/*
 const expressApp = express();
 expressApp.use(cors({ origin: true }));
 
@@ -31,6 +32,27 @@ expressApp.post('/', (req, res) => {
 });
 
 exports.createCommitment = functions.https.onRequest(expressApp);
+*/
+
+exports.createCommitment = functions.https.onCall((data, context) => {
+  console.log('data', data);
+
+  // Create the commitment doc
+  const commitmentsRef = db
+    .collection('commitments');
+
+  return commitmentsRef
+    .add(data) // TODO validate input data fields
+    .then(docRef => {
+      console.log(`Added commitment doc id:${docRef.id}`);
+      return { success: true };
+    })
+    .catch(err => {
+      // TODO: https://firebase.google.com/docs/functions/callable#handle_errors
+      console.error(err);
+      return { success: false };
+    });
+});
 
 // Firestore change triggered callback
 // https://firebase.google.com/docs/firestore/extend-with-functions
@@ -40,11 +62,10 @@ exports.updateAggregateCounts = functions.firestore
     const newValue = snap.data();
 
     const countRef = db.collection('aggregate').doc('countsByZip');
-    countRef.get()
+    countRef.get() // TODO return this whole thing
       .then((doc) => {
         if (doc.exists) {
           console.log('Incrementing aggregate counts');
-          console.log('db deets', doc._ref._firestore._settings);
           return countRef.update({
             callBank: admin.firestore.FieldValue.increment(1),
             // TODO
@@ -52,7 +73,7 @@ exports.updateAggregateCounts = functions.firestore
         } else {
           console.log('Creating aggregate counts doc');
           return countRef.set({
-            callBank: 0,
+            callBank: 1,
             // TODO
           });
         }

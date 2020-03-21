@@ -46,6 +46,7 @@ const DBTestsPage = ({ firebase }) => {
       name: 'tester',
       email: 'test@test.com',
       zip,
+      // TODO timestamp
 
       // Commitments
       commitments: {
@@ -57,6 +58,7 @@ const DBTestsPage = ({ firebase }) => {
       }
     };
 
+    /*
     const endpoint = 'http://localhost:5001/climate-commitments-staging/us-central1/createCommitment'
     // const endpoint = `${cloudFunctionsEndpoint()}/createCommitment`;
     // const endpoint = `/createCommitment`
@@ -65,6 +67,12 @@ const DBTestsPage = ({ firebase }) => {
     axios.post(endpoint, commitmentData)
       .then(response => console.log(response))
       .catch(error => console.error(`${error}`));
+    */
+    // https://firebase.google.com/docs/functions/callable
+    const createCommitment = firebase.functions().httpsCallable('createCommitment');
+    createCommitment(commitmentData)
+      .then(result => console.log('created', result.data))
+      .catch(err => console.error(err));
   }
 
   const handleZipChange = (event) => setZip(event.target.value);

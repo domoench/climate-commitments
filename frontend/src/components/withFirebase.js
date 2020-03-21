@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import getFirebase from '../firebase'
-import FirebaseContext from './FirebaseContext';
 
 const withFirebase = WrappedComponent => (props) => {
   const [firebase, setFirebase] = useState(null);
@@ -8,7 +7,8 @@ const withFirebase = WrappedComponent => (props) => {
   useEffect(() => {
     const app = import('firebase/app');
     const firestore = import('firebase/firestore');
-    Promise.all([app, firestore]).then(values => {
+    const functions = import('firebase/functions');
+    Promise.all([app, firestore, functions]).then(values => {
       const firebase = getFirebase(values[0])
       setFirebase(firebase);
     });

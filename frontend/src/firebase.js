@@ -1,12 +1,12 @@
 const config = {
   // TODO don't these values need to change for staging or dev emulators?
   apiKey: process.env.FIREBASE_API_KEY,
-  authDomain: 'climate-commitments.firebaseapp.com',
-  databaseURL: 'https://climate-commitments.firebaseio.com',
-  projectId: 'climate-commitments',
-  storageBucket: 'climate-commitments.appspot.com',
-  messagingSenderId: '807727542032',
-  appId: '1:807727542032:web:c127b458149d6beb8bbf95',
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
 }
 
 let firebaseCache;
@@ -20,6 +20,7 @@ const getFirebase = firebase => {
 
   firebase.initializeApp(config);
 
+  /*
   if (isLocalDev()) {
     console.log('localhost detected!');
     firebase.firestore().settings({
@@ -27,6 +28,7 @@ const getFirebase = firebase => {
       ssl: false,
     });
   }
+  */
 
   firebaseCache = firebase;
   return firebase;
