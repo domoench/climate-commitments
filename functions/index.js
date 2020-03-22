@@ -12,7 +12,7 @@ exports.createCommitment = functions.https.onCall((data, context) => {
     .collection('commitments');
 
   return commitmentsRef
-    .add(data) // TODO validate input data fields
+    .add(data) // TODO validate input data fields. Perhaps https://hapi.dev/module/joi/#usage
     .then(docRef => {
       console.log(`Added commitment doc id:${docRef.id}`);
       return { success: true };
@@ -25,29 +25,38 @@ exports.createCommitment = functions.https.onCall((data, context) => {
 });
 
 // Firestore change triggered callback
-// https://firebase.google.com/docs/firestore/extend-with-functions
+// - https://firebase.google.com/docs/firestore/extend-with-functions
+// - firestore dot notation: https://firebase.google.com/docs/firestore/manage-data/add-data#update_fields_in_nested_objects
 exports.updateAggregateCounts = functions.firestore
   .document('commitments/{commitmentId}')
   .onCreate((snap, context) => {
-    const newValue = snap.data();
-
+    const newCommitment = snap.data();
+    const {
+      commitments,
+      zip,
+    } = newCommitment;
+    const commitmentId = snap.id;
     const countRef = db.collection('aggregate').doc('countsByZip');
-    countRef.get() // TODO return this whole thing
+    const plus1 = admin.firestore.FieldValue.increment(1);
+
+    return countRef.get()
       .then((doc) => {
         if (doc.exists) {
-          console.log('Incrementing aggregate counts');
-          return countRef.update({
-            callBank: admin.firestore.FieldValue.increment(1),
-            // TODO
-          });
+          const updatesObj = {};
+          const trueCommitmentKeys = Object.keys(commitments).filter(k => commitments[k]);
+          trueCommitmentKeys.forEach(commitmentKey => updatesObj[`${commitmentKey}.${zip}`] = plus1);
+
+          console.log(`Incrementing aggregate counts: commitmentId:${commitmentId}. zip:${zip}. commitments:${trueCommitmentKeys}`);
+          return countRef.update(updatesObj);
         } else {
-          console.log('Creating aggregate counts doc');
-          return countRef.set({
-            callBank: 1,
-            // TODO
+          const initialCounts = {};
+          Object.keys(commitments).forEach(commitmentKey => {
+            initialCounts[commitmentKey] = commitments[commitmentKey] ? { [zip]: plus1 } : {}
           });
+
+          console.log('Creating aggregate counts doc');
+          return countRef.set(initialCounts);
         }
       })
       .catch(err => console.error(err));
-      return 0; // TODO
   });

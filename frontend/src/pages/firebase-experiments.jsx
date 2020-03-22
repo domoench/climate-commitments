@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useState } from 'react';
 import withFirebase from '../components/withFirebase';
 
 const Display = ({ firebase }) => {
@@ -20,7 +19,7 @@ const Display = ({ firebase }) => {
   );
 }
 
-const DBTestsPage = ({ firebase }) => {
+const FirebaseExperimentsPage = ({ firebase }) => {
   const [zip, setZip] = useState('');
   const [callBank, setCallBank] = useState(false);
   const [callRep, setCallRep] = useState(false);
@@ -132,4 +131,4 @@ const DBTestsPage = ({ firebase }) => {
   );
 };
 
-export default withFirebase(DBTestsPage);
+export default withFirebase(FirebaseExperimentsPage);

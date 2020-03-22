@@ -19,6 +19,9 @@ const getFirebase = firebase => {
 
   firebase.initializeApp(config);
 
+  // TODO how to connect to emulators only if they are running, and to staging otherwise?
+  // Tried axios pinging the emulator hub (:4400) but CORs issue.
+  // Just pass a flag? Or just always use the emulator locally?
   if (isLocalDev()) {
     console.log('Local Development. Communicating with firebase emulators');
     firebase.functions().useFunctionsEmulator('http://localhost:5001');
