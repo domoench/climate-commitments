@@ -21,10 +21,7 @@
     "react-helmet": "^5.2.1"
   },
   "devDependencies": {
-    "babel-jest": "^25.1.0",
-    "babel-preset-gatsby": "^0.2.31",
     "eslint-plugin-react": "^7.19.0",
-    "jest": "^25.1.0",
     "prettier": "^1.19.1"
   },
   "keywords": [
