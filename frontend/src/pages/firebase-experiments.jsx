@@ -2,18 +2,22 @@ import React, { useState } from 'react';
 import withFirebase from '../components/withFirebase';
 
 const Display = ({ firebase }) => {
+  const [counts, setCounts] = useState({})
+
   const handleClick = () => {
     firebase.firestore().collection('aggregate').doc('countsByZip').get()
       .then((doc) => {
-        console.log('doc.data()', doc.data());
+        setCounts(doc.data())
       })
       .catch(err => console.error(err));
   }
 
   return (
     <>
+      <h2>Aggregated commitment counts by zip</h2>
+      <div><pre>{JSON.stringify(counts, null, 2) }</pre></div>
       <button onClick={handleClick}>
-        Inspect
+        Refresh Counts
       </button>
     </>
   );
@@ -63,6 +67,7 @@ const FirebaseExperimentsPage = ({ firebase }) => {
 
   return (
     <>
+      <h2>Commitment Form</h2>
       <form onSubmit={handleSubmit}>
         <label style={labelStyle}>
           <input

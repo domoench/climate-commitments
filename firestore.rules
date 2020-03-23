@@ -1,4 +1,8 @@
 rules_version = '2';
+
+// TODO Try adding some schema-on-write constraints
+// https://medium.com/firebase-developers/cloud-firestore-on-data-constraints-and-evolvability-a8f44b34fde8
+
 service cloud.firestore {
   match /databases/{database}/documents {
     match /aggregate/countsByZip {
