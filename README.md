@@ -12,10 +12,43 @@ starting point.
 [Deploying to Firebase](https://www.gatsbyjs.org/docs/deploying-to-firebase/)
 
 
-## Steps to run locally
+## Develop locally: Installation
 
 1. Install gatsby: `npm install -g gatsby-cli`
-2. Clone this repo and cd inside.
-3. Run `yarn install`
-4. Start the development server: `gatsby develop`
-5. Install Firebase tools: `npm install -g firebase-tools`
+1. Install Firebase tools: `npm install -g firebase-tools`
+1. Clone this repo and cd inside.
+1. Install the frontend packages
+    ```
+    cd frontend/
+    yarn install
+    ```
+1. Install the cloud functions packages
+    ```
+    cd functions/
+    yarn install
+    ```
+
+## Deploying
+
+To staging:
+```sh
+cd frontend/
+npm run deploy-staging
+```
+
+To production
+```sh
+cd frontend/
+npm run deploy-production
+```
+
+## Develop Locally
+```sh
+# Start the firebase emulators in one shell
+firebase emulators:start
+
+# Run the local frontend server in another
+cd frontend/
+npm run develop
+```
+
