@@ -5,69 +5,56 @@ const firebaseApp = admin.initializeApp(functions.config().firebase);
 const db = firebaseApp.firestore();
 
 // TODO
-// - Make document ID a hash of the email, and use to enforce unique emails
 // - validate input data fields. Perhaps https://hapi.dev/module/joi/#usage
-//   - Ensure multiple commitments can't be added for the same email
 //   - Validate the semantic fields: email, zip, etc
 exports.createCommitment = functions.https.onCall((data, context) => {
-  // Create the commitment doc
-  const commitmentsRef = db
-    .collection('commitments');
+  let {
+    commitments,
+    zip,
+  } = data;
 
-  return commitmentsRef
-    .add(data)
-    .then(docRef => {
-      console.log(`Added commitment doc id:${docRef.id}`);
-      return { success: true };
+  // Handle un-entered zip code. Empty string breaks firestore dot notation
+  // https://firebase.google.com/docs/firestore/manage-data/add-data#update_fields_in_nested_objects
+  zip = zip === '' ? 'none' : zip;
+
+  const commitmentId = data.email;
+  const commitmentRef = db.collection('commitments').doc(commitmentId);
+  const countRef = db.collection('aggregate').doc('countsByZip');
+  const plus1 = admin.firestore.FieldValue.increment(1);
+
+  db.runTransaction(transaction => {
+    // I. Update aggregate count document
+    const aggrPromise = transaction.get(countRef).then(doc => {
+      const trueCommitmentKeys = Object.keys(commitments).filter(k => commitments[k]);
+
+      if (!doc.exists) {
+        const initialCounts = {};
+        Object.keys(commitments).forEach(commitmentKey => {
+          initialCounts[commitmentKey] = commitments[commitmentKey] ? { [zip]: plus1 } : {}
+        });
+        transaction.set(countRef, initialCounts);
+      }
+
+      const updatesObj = {};
+      trueCommitmentKeys.forEach(commitmentKey => updatesObj[`${commitmentKey}.${zip}`] = plus1);
+      transaction.update(countRef, updatesObj);
+      return `commitmentId:${commitmentId}. commitments:${trueCommitmentKeys}.`;
     })
-    .catch(err => {
-      // TODO: https://firebase.google.com/docs/functions/callable#handle_errors
-      console.error(err);
-      return { success: false };
-    });
+
+    // II. Create individual commitment document
+    const commitPromise = transaction.get(commitmentRef).then(doc => {
+      if (doc.exists) {
+        throw new Error(`Commitment doc already exists: id:${commitmentId}.`);
+      }
+
+      transaction.set(commitmentRef, data);
+      return data;
+    })
+
+    return Promise.all([aggrPromise, commitPromise]);
+  }).then((values) => {
+    console.log('Incremented aggregate counts doc: ', values[0])
+    console.log('Created commitment doc: ', values[1])
+    return Promise.resolve();
+  }).catch(err => console.error('Transaction error: ', err));
 });
-
-// Firestore change triggered callback
-// - https://firebase.google.com/docs/firestore/extend-with-functions
-//
-// TODO: Should probably move this logic into the createCommitment function using
-// a batched write (https://cloud.google.com/firestore/docs/manage-data/transactions#batched-writes)
-// to ensure new commitment doc and aggregate count doc are created/updated atomically
-exports.updateAggregateCounts = functions.firestore
-  .document('commitments/{commitmentId}')
-  .onCreate((snap, context) => {
-    const newCommitment = snap.data();
-    let {
-      commitments,
-      zip,
-    } = newCommitment;
-
-    // Handle un-entered zip code. Empty string breaks firestore dot notation
-    // https://firebase.google.com/docs/firestore/manage-data/add-data#update_fields_in_nested_objects
-    zip = zip === '' ? 'none' : zip;
-
-    const commitmentId = snap.id;
-    const countRef = db.collection('aggregate').doc('countsByZip');
-    const plus1 = admin.firestore.FieldValue.increment(1);
-
-    return countRef.get()
-      .then((doc) => {
-        if (doc.exists) {
-          const updatesObj = {};
-          const trueCommitmentKeys = Object.keys(commitments).filter(k => commitments[k]);
-          trueCommitmentKeys.forEach(commitmentKey => updatesObj[`${commitmentKey}.${zip}`] = plus1);
-
-          console.log(`Incrementing aggregate counts: commitmentId:${commitmentId}. zip:${zip}. commitments:${trueCommitmentKeys}`);
-          return countRef.update(updatesObj);
-        } else {
-          const initialCounts = {};
-          Object.keys(commitments).forEach(commitmentKey => {
-            initialCounts[commitmentKey] = commitments[commitmentKey] ? { [zip]: plus1 } : {}
-          });
-
-          console.log('Creating aggregate counts doc');
-          return countRef.set(initialCounts);
-        }
-      })
-      .catch(err => console.error(err));
-  });
