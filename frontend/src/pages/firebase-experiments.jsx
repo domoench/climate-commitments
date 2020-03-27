@@ -24,7 +24,12 @@ const Display = ({ firebase }) => {
 }
 
 const FirebaseExperimentsPage = ({ firebase }) => {
+  // User info
   const [zip, setZip] = useState('');
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+
+  // User commitments
   const [callBank, setCallBank] = useState(false);
   const [callRep, setCallRep] = useState(false);
   const [talk, setTalk] = useState(false);
@@ -34,13 +39,10 @@ const FirebaseExperimentsPage = ({ firebase }) => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    // TODO how to enforce unique emails in the commitments docs
-    // TODO increment commitment
     const commitmentData = {
-      name: 'tester',
-      email: 'test@test.com',
+      name,
+      email,
       zip,
-      // TODO timestamp
 
       // Commitments
       commitments: {
@@ -53,13 +55,12 @@ const FirebaseExperimentsPage = ({ firebase }) => {
     };
 
     // https://firebase.google.com/docs/functions/callable
+    // TODO: Handle errors - e.g. submitting a commitment with the same email
     const createCommitment = firebase.functions().httpsCallable('createCommitment');
     createCommitment(commitmentData)
       .then(result => console.log('created', result.data))
       .catch(err => console.error(err));
   }
-
-  const handleZipChange = (event) => setZip(event.target.value);
 
   const labelStyle = {
     display: 'block',
@@ -69,6 +70,36 @@ const FirebaseExperimentsPage = ({ firebase }) => {
     <>
       <h2>Commitment Form</h2>
       <form onSubmit={handleSubmit}>
+        <label style={labelStyle}>
+          <input
+            name="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          {` Name`}
+        </label>
+
+        <label style={labelStyle}>
+          <input
+            name="email"
+            type="text"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          {` Email`}
+        </label>
+
+        <label style={labelStyle}>
+          <input
+            name="zip"
+            type="text"
+            value={zip}
+            onChange={(e) => setZip(e.target.value)}
+          />
+          {` Zipcode`}
+        </label>
+
         <label style={labelStyle}>
           <input
             name="callBank"
@@ -118,17 +149,6 @@ const FirebaseExperimentsPage = ({ firebase }) => {
           />
           {` Encourage divestment`}
         </label>
-
-        <label style={labelStyle}>
-          <input
-            name="zip"
-            type="text"
-            value={zip}
-            onChange={handleZipChange}
-          />
-          {` Zipcode`}
-        </label>
-
         <input type="submit" value="Submit" />
       </form>
       <Display firebase={firebase} />

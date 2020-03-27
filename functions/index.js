@@ -33,11 +33,11 @@ exports.createCommitment = functions.https.onCall((data, context) => {
           initialCounts[commitmentKey] = commitments[commitmentKey] ? { [zip]: plus1 } : {}
         });
         transaction.set(countRef, initialCounts);
+      } else {
+        const updatesObj = {};
+        trueCommitmentKeys.forEach(commitmentKey => updatesObj[`${commitmentKey}.${zip}`] = plus1);
+        transaction.update(countRef, updatesObj);
       }
-
-      const updatesObj = {};
-      trueCommitmentKeys.forEach(commitmentKey => updatesObj[`${commitmentKey}.${zip}`] = plus1);
-      transaction.update(countRef, updatesObj);
       return `commitmentId:${commitmentId}. commitments:${trueCommitmentKeys}.`;
     })
 
@@ -46,9 +46,14 @@ exports.createCommitment = functions.https.onCall((data, context) => {
       if (doc.exists) {
         throw new Error(`Commitment doc already exists: id:${commitmentId}.`);
       }
+      const commitmentData = {
+        ...data,
+        zip,
+        createdAt: new Date(),
+      };
 
-      transaction.set(commitmentRef, data);
-      return data;
+      transaction.set(commitmentRef, commitmentData);
+      return commitmentData;
     })
 
     return Promise.all([aggrPromise, commitPromise]);
