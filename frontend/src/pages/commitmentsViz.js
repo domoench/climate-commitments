@@ -16,6 +16,7 @@ import BubbleChart from '../components/visualization/BubbleChart';
 //  - Canvas packed circles with additional detail rendering on zoom:
 //    - Overview: https://gist.github.com/nbremer/667e4df76848e72f250b
 //    - Demo: https://nbremer.github.io/occupationscanvas/
+//  - Animated packed circles: https://bl.ocks.org/feifang/664c0f16adfcb4dea31b923f74e897a0
 
 export default () => {
   return (

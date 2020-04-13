@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { select, event } from 'd3-selection';
 import { pack, hierarchy } from 'd3-hierarchy';
-import { zoom } from 'd3-zoom';
+import { interpolateZoom } from 'd3-interpolate';
 import { v4 as uuidv4 } from 'uuid';
 
 // Generate dummy hierarchichal data
@@ -18,7 +18,6 @@ const generateHierarchicalData = () => {
       // TODO: Add ids to all data nodes.
       // Try data join keys so we can add/remove nodes => Dynamic aggregation on zoom out
       id: uuidv4(),
-      visible: true,
       name: countryCode,
       children: randomPostalCodes.map(pc => generatePostalNode(pc)),
     };
@@ -29,14 +28,13 @@ const generateHierarchicalData = () => {
 
     return {
       id: uuidv4(),
-      visible: true,
       name: postalCode,
       children: randomCommitments.map(c => generateCommitmentNode(c)),
     };
   }
 
   const generateCommitmentNode = (commitment) => {
-    const numCommitments = Math.ceil(Math.random() * 50); // TODO this looks bad when numbers get high
+    const numCommitments = Math.max(1, Math.ceil(Math.random() * 3)); // TODO this looks bad when numbers get high
     const commitments = new Array(numCommitments);
     for (let i = 0; i < numCommitments; ++i) {
       commitments[i] = {
@@ -47,7 +45,6 @@ const generateHierarchicalData = () => {
 
     return {
       id: uuidv4(),
-      visible: true,
       name: commitment,
       children: commitments,
     };
@@ -55,71 +52,104 @@ const generateHierarchicalData = () => {
 
   return {
     id: uuidv4(),
-    visible: true,
     name: 'earth',
     children: countryCodes.map(cc => generateCountryNode(cc)),
   };
 };
 
-const renderPackedCircleGraph = (rootNode, width, height) => {
+const renderPackedCircleGraph = (_rootNode, lookup, width, height) => {
+  console.log('lookup', lookup);
+  let view;
+  const rootNode = _rootNode.copy(); // Don't modify the original
+  let focus = rootNode;
   const packLayout = pack().size([width, height]).padding(4).size([width - 2, height - 2]);
   packLayout(rootNode);
+  // console.log('rootNode.leaves()', rootNode.leaves());
+
+  // Remove leaf nodes if we aren't zoomed in
+  // There are probably too many to render quickly
+  // PROB: Ok cool that works, but how do we add them back
+  console.log('rootNode.descendents.length', rootNode.descendants().length);
+  if (focus.depth < 2) {
+    rootNode.each((node) => {
+      if (node.height == 1) {
+        node.children = [];
+      }
+    })
+  }
+  console.log('rootNode.descendents.length', rootNode.descendants().length);
+  console.log('_rootNode.descendents.length', rootNode.descendants().length);
 
   const svg = select('.packed-circles-viz')
-    .attr('text-anchor', 'middle');
-  const g = svg.select('g');
+    .attr('width', width)
+    .attr('height', height)
+    .attr('viewBox', `-${width / 2} -${height / 2} ${width} ${height}`)
+    .style('display', 'block')
+    .attr('text-anchor', 'middle')
+    .on('click', () => zoom(rootNode));
 
-  const node = g.selectAll('circle')
-    .data(rootNode.descendants().slice(1), d => d.data.id)
-
-  node.transition()
-    .duration(300)
-    .attr("cx", function(d) { return d.x; })
-    .attr("cy", function(d) { return d.y; })
-    .attr("r", function(d) { return d.r; });
-
-  node.enter()
-    .append('circle')
-      .attr('cx', function(d) { return d.x; })
-      .attr('cy', function(d) { return d.y; })
-      .attr('r', function(d) { return d.r; })
+  const node = svg.select('g').selectAll('circle')
+    .data(rootNode.descendants(), d => d.data.id)
+    .join('circle')
       .style('fill', '#29ffb6')
       .style('opacity', 0.3)
-      .style('stroke', '#207068')
+      .attr('stroke', '#ccc')
+      .on('mouseover', function() { select(this).attr('stroke', '#f00'); })
+      .on('mouseout', function() { select(this).attr('stroke', '#bbb'); })
+      //.on('click', d => focus !== d && (zoom(d), event.stopPropagation()))
+      .on('click', d => renderPackedCircleGraph(lookup[d.data.id], lookup, width, height)) // This gives me zoom + ignoring everything else
 
-  node.exit().remove();
+  // Following this example: https://observablehq.com/@d3/zoomable-circle-packing
+  const zoomTo = (v) => {
+    const k = width / v[2];
 
-  /*
-  const text = g.selectAll("text")
-    .data(rootNode.descendants().slice(1))
-    .enter().append("text")
-      .attr("class", "label")
-      .attr('x', function(d) { return d.x; })
-      .attr('y', function(d) { return d.y; })
-      .style("fill-opacity", function(d) { return d.parent === rootNode ? 0.1 : 0; })
-      .style("display", function(d) { return d.parent === rootNode ? "inline" : "none"; })
-      .text(function(d) { return d.data.name; })
-      .style("font-size", function(d) { return Math.min(2 * d.r, (2 * d.r - 8) / this.getComputedTextLength() * 18) + "px"; })
-      .attr("dy", ".35em");
+    view = v;
 
-  text.exit().remove();
-  */
+    node.attr('transform', d => `translate(${(d.x - v[0]) * k},${(d.y - v[1]) * k})`);
+    node.attr('r', d => d.r * k);
+  }
+  zoomTo([rootNode.x, rootNode.y, rootNode.r * 2]);
+
+  const zoom = (newFocus) => {
+    console.log('Zooming to: ', newFocus.data.name);
+    focus = newFocus;
+
+    const transition = svg.transition()
+      .duration(event.altKey ? 7500 : 750)
+      .tween('zoom', d => {
+        const i = interpolateZoom(view, [focus.x, focus.y, focus.r * 2]);
+        return t => zoomTo(i(t));
+      });
+  }
 }
 
 export default () => {
   const data = generateHierarchicalData(); // TODO
   const rootNode = hierarchy(data).sum(d => 1);
 
+  // Remember leaf nodes
+  /*
+  const leavesByParent = rootNode.leaves().reduce((acc, cur) => {
+    const parent_id = cur.parent.data.id
+    if (parent_id in acc) {
+      acc[parent_id] = [...acc[parent_id], cur];
+    } else {
+      acc[parent_id] = [cur];
+    }
+    return acc;
+  }, {})
+  console.log('leavesByParent', leavesByParent);
+  */
+
+  // ID to Node object lookup
+  const lookup = rootNode.descendants().reduce((acc, cur) => {
+    acc[cur.data.id] = cur;
+    return acc;
+  }, {})
+
   // Render the graph with D3 after React has finished mounting the SVG element on the DOM
   useEffect(() => {
-    renderPackedCircleGraph(rootNode, 700, 700);
-
-    setTimeout(() => {
-      // TEST dynamically remov nodes from the hierarchy
-      console.log('removing first child', rootNode.children[0]);
-      rootNode.children = rootNode.children.slice(1);
-      renderPackedCircleGraph(rootNode, 700, 700)
-    }, 2000);
+    renderPackedCircleGraph(rootNode, lookup, 700, 700);
   });
 
   return (
