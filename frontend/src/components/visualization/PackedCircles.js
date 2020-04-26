@@ -57,7 +57,7 @@ const generateHierarchicalData = () => {
   };
 };
 
-const renderPackedCircleGraph = (_rootNode, lookup, width, height) => {
+const renderPackedCircleGraphSVG = (_rootNode, lookup, width, height) => {
   console.log('lookup', lookup);
   let view;
   const rootNode = _rootNode.copy(); // Don't modify the original
@@ -97,7 +97,7 @@ const renderPackedCircleGraph = (_rootNode, lookup, width, height) => {
       .on('mouseover', function() { select(this).attr('stroke', '#f00'); })
       .on('mouseout', function() { select(this).attr('stroke', '#bbb'); })
       //.on('click', d => focus !== d && (zoom(d), event.stopPropagation()))
-      .on('click', d => renderPackedCircleGraph(lookup[d.data.id], lookup, width, height)) // This gives me zoom + ignoring everything else
+      .on('click', d => renderPackedCircleGraphSVG(lookup[d.data.id], lookup, width, height)) // This gives me zoom + ignoring everything else
 
   // Following this example: https://observablehq.com/@d3/zoomable-circle-packing
   const zoomTo = (v) => {
@@ -123,7 +123,7 @@ const renderPackedCircleGraph = (_rootNode, lookup, width, height) => {
   }
 }
 
-export default () => {
+export const PackedCirlesSVG = () => {
   const data = generateHierarchicalData(); // TODO
   const rootNode = hierarchy(data).sum(d => 1);
 
@@ -149,7 +149,7 @@ export default () => {
 
   // Render the graph with D3 after React has finished mounting the SVG element on the DOM
   useEffect(() => {
-    renderPackedCircleGraph(rootNode, lookup, 700, 700);
+    renderPackedCircleGraphSVG(rootNode, lookup, 700, 700);
   });
 
   return (
@@ -160,4 +160,8 @@ export default () => {
       </svg>
     </>
   );
+};
+
+export const PackedCirlesCanvas = () => {
+  return null;
 };

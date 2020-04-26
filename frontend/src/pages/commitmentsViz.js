@@ -1,8 +1,9 @@
 import React from 'react';
 
 import Layout from '../components/layout';
-import PackedCircles from '../components/visualization/PackedCircles';
-import BubbleChart from '../components/visualization/BubbleChart';
+// import PackedCirclesSVG, PackedCirclesCanvas from '../components/visualization/PackedCircles';
+import BubbleChartSVG from '../components/visualization/BubbleChart';
+import BubbleChartCanvas from '../components/visualization/BubbleChartCanvas';
 
 // TODO
 // - [X] Basic circle packing visualization
@@ -17,12 +18,27 @@ import BubbleChart from '../components/visualization/BubbleChart';
 //    - Overview: https://gist.github.com/nbremer/667e4df76848e72f250b
 //    - Demo: https://nbremer.github.io/occupationscanvas/
 //  - Animated packed circles: https://bl.ocks.org/feifang/664c0f16adfcb4dea31b923f74e897a0
+//  - Canvas force graph: https://bl.ocks.org/mbostock/3180395
 
+const canvas = true;
 export default () => {
+  let visuals;
+  if (canvas) {
+    visuals = (
+      <>
+        <BubbleChartCanvas />
+      </>
+    )
+  } else {
+    visuals = (
+      <>
+        <BubbleChartSVG />
+      </>
+    )
+  }
   return (
     <Layout>
-      <PackedCircles />
-      <BubbleChart />
+      {visuals}
     </Layout>
   );
 }
