@@ -13,6 +13,8 @@ const colorCircle = scaleOrdinal(schemePaired);
 // D3 Viz vars
 // TODO so many file globals, can we cleanup to make the functions easier to understand?
 let context = null;
+let hiddenContext = null;
+var colToCircle = {};
 let lastRenderedTime = 0;
 let dt = 0;
 let interpolator = null;
@@ -25,18 +27,47 @@ let centerY = 0;
 let focus = null;
 let vOld = null;
 
-const renderBubbleChartCanvas = (rootNode, width, height) => {
-  context.clearRect(0, 0, width, height);
+// TODO move to a utils function file
+// Generates the next color in the sequence, going from 0,0,0 to 255,255,255.
+// From: https://bocoup.com/weblog/2d-picking-in-canvas
+let nextGenCol = 1;
+function genColor(){
+  var ret = [];
+  if(nextGenCol < 16777215){
+    ret.push(nextGenCol & 0xff); // R
+    ret.push((nextGenCol & 0xff00) >> 8); // G
+    ret.push((nextGenCol & 0xff0000) >> 16); // B
+    nextGenCol += 1;
+  }
+  var col = "rgb(" + ret.join(',') + ")";
+  return col;
+};
 
+const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
+  // Current context
+  const ctx = hidden ? hiddenContext : context;
+
+  // Clear canvas
+  ctx.clearRect(0, 0, width, height);
+
+  //Draw each circle
   rootNode.each((node) => {
     if (node.depth === 0) { return; }
 
-    context.save();
+    ctx.save(); // TODO need to save and restore?
 
-    //Draw each circle
-    context.fillStyle = colorCircle(node.data.commitment);
-    context.beginPath();
-    context.arc(
+    if (hidden) {
+      if (!node.pickColor) {
+        node.pickColor = genColor();
+        colToCircle[node.pickColor] = node;
+      }
+      ctx.fillStyle = node.pickColor;
+    } else {
+      ctx.fillStyle = colorCircle(node.data.commitment);
+    }
+
+    ctx.beginPath();
+    ctx.arc(
       (node.x - zoomInfo.centerX) * zoomInfo.scale + centerX,
       (node.y - zoomInfo.centerY) * zoomInfo.scale + centerY,
       node.r * zoomInfo.scale,
@@ -44,10 +75,10 @@ const renderBubbleChartCanvas = (rootNode, width, height) => {
       2 * Math.PI,
       true
     );
-    context.fill();
-    context.closePath();
+    ctx.fill();
+    ctx.closePath();
 
-    context.restore();
+    ctx.restore();
   });
 }
 
@@ -106,28 +137,42 @@ export default () => {
 
   useEffect(() => {
     const canvas = select('#bubble-chart').append('canvas')
+      .attr('id', 'canvas')
       .attr('width', width)
       .attr('height', height);
     context = canvas.node().getContext('2d');
+    context.clearRect(0, 0, width, height);
+
+    const hiddenCanvas = select('#bubble-chart').append('canvas')
+      .attr('id', 'hiddenCanvas')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('style', 'display: none');
+    hiddenContext = hiddenCanvas.node().getContext('2d');
+    hiddenContext.clearRect(0, 0, width, height);
 
     // Start the d3 animation
     timer(elapsedSinceAnimationStart => {
       dt = elapsedSinceAnimationStart - lastRenderedTime;
       lastRenderedTime = elapsedSinceAnimationStart;
       interpolateZoom(dt);
-      renderBubbleChartCanvas(rootNode, width, height);
+      renderBubbleChartCanvas(rootNode, width, height, false);
     });
 
     // Set up zoom click handler
     document.getElementById('bubble-chart').addEventListener('click', e => {
-      // For now, choose a random node to focus on or the rootNode
-      if (focus !== rootNode) {
-        focus = rootNode;
-      } else {
-        const nodes = rootNode.descendants();
-        focus = nodes[Math.floor(Math.random() * nodes.length)];
-      }
-      zoomToCanvas(focus);
+      // Render the hidden color mapped canvas for 'picking'
+      renderBubbleChartCanvas(rootNode, width, height, true);
+
+      // Pick the node being clicked
+      const mouseX = e.layerX;
+			const mouseY = e.layerY;
+      const pixelCol = hiddenContext.getImageData(mouseX, mouseY, 1, 1).data;
+      const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;
+      const node = colToCircle[colString];
+
+      const newFocus = (node && focus !== node) ? node : rootNode;
+      zoomToCanvas(newFocus);
     });
   });
 
