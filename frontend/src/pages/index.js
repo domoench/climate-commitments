@@ -18,6 +18,9 @@ const IndexPage = () => (
     </div>
     <ul>
       <li>
+        <Link to="/commitments">Commitments Flow</Link>
+      </li>
+      <li>
         <Link to="/elected-reps/">Elected Reps</Link>
       </li>
       <li>
