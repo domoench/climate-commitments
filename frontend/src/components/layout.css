@@ -37,3 +37,22 @@ p {
 button {
     font-family: "proxima_nova";
 }
+
+/* Cheating a bit here to override the primary colors */
+.bg-primary {
+    background-color: #25608d !important;
+    border: #25608d;
+}
+
+.text-primary {
+    color: #25608d !important;
+}
+
+.bg-secondary {
+    background-color: #f6a04d !important;
+    border: #f6a04d;
+}
+
+.text-secondary {
+    color: #f6a04d !important;
+}
