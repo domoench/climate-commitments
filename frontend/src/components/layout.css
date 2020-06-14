@@ -38,7 +38,10 @@ button {
     font-family: "proxima_nova";
 }
 
-/* Cheating a bit here to override the primary colors */
+/* Cheating a bit here to override the primary colors
+@TODO: fix button colors so the hover state is a lightened
+version of the bg-primary
+*/
 .bg-primary {
     background-color: #25608d !important;
     border: #25608d;

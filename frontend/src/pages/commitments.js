@@ -5,8 +5,11 @@ import Layout from "../components/layout"
 import Image from "../components/image"
 import SEO from "../components/seo"
 import Button from "react-bootstrap/Button"
+import ProgressBar from "react-bootstrap/ProgressBar"
 
 import Welcome from "../commitment_components/Welcome"
+import CommitmentsOverview from "../commitment_components/CommitmentsOverview"
+
 const Commitments = () => {
   const [step, setStep] = useState(0)
   const [error, toggleError] = useState(false)
@@ -27,8 +30,21 @@ const Commitments = () => {
   return (
     <Layout>
       <SEO title="Commitments" />
-      {step}
       <Welcome stepVal={0} currentStep={step} onClick={nextStep} />
+      <CommitmentsOverview stepVal={1} currentStep={step} onClick={nextStep} />
+
+      <div className="text-center mt-4">
+        <Button onClick={prevStep} variant="light" className="mr-4" size="lg">
+          Back
+        </Button>
+        <Button onClick={nextStep} className="bg-primary" size="lg">
+          Next
+        </Button>
+      </div>
+
+      <div className="mt-4">
+        <ProgressBar variant="secondary" now={step * 20} />
+      </div>
     </Layout>
   )
 }

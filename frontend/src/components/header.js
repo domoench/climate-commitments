@@ -6,7 +6,7 @@ import Navbar from "react-bootstrap/Navbar"
 import Nav from "react-bootstrap/Nav"
 import Image from "react-bootstrap/Image"
 const Header = ({ siteTitle }) => (
-  <Navbar className="justify-content-center mb-5">
+  <Navbar className="justify-content-center mb-2">
     <Link to="/">
       <Navbar.Brand>
         <Image
