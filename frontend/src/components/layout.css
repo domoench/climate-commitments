@@ -2,7 +2,7 @@
 
 @font-face {
     font-family: 'proxima_nova';
-    src: url("../assets/Proxima Nova/Mark Simonson - Proxima Nova Light.ttf") format("truetype");
+    src: url("../assets/Proxima Nova/Mark Simonson - Proxima Nova Bold.ttf") format("truetype");
     font-weight: normal;
     font-style: normal;
 }
@@ -26,6 +26,14 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+h1 {
+    font-family: "proxima_nova";
+}
+
 p {
     font-family: "shift";
+}
+
+button {
+    font-family: "proxima_nova";
 }
