@@ -1,8 +1,6 @@
 import React from 'react';
 
 import Layout from '../components/layout';
-// import PackedCirclesSVG, PackedCirclesCanvas from '../components/visualization/PackedCircles';
-import BubbleChartSVG from '../components/visualization/BubbleChart';
 import BubbleChartCanvas from '../components/visualization/BubbleChartCanvas';
 
 // TODO
@@ -20,25 +18,11 @@ import BubbleChartCanvas from '../components/visualization/BubbleChartCanvas';
 //  - Animated packed circles: https://bl.ocks.org/feifang/664c0f16adfcb4dea31b923f74e897a0
 //  - Canvas force graph: https://bl.ocks.org/mbostock/3180395
 
-const canvas = true;
 export default () => {
-  let visuals;
-  if (canvas) {
-    visuals = (
-      <>
-        <BubbleChartCanvas />
-      </>
-    )
-  } else {
-    visuals = (
-      <>
-        <BubbleChartSVG />
-      </>
-    )
-  }
   return (
     <Layout>
-      {visuals}
+      <h1>Hierarchical Data</h1>
+      <BubbleChartCanvas />
     </Layout>
   );
-}
+};

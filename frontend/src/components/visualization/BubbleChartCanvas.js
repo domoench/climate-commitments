@@ -80,6 +80,8 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
 }
 
 const zoomToCanvas = focusNode => {
+  if (focusNode === focus) return; // Noop
+
   focus = focusNode;
   const v = [focus.x, focus.y, focus.r * 2.05]; // New viewport
 
@@ -107,13 +109,15 @@ const interpolateZoom = dt => {
   }
 };
 
-export default () => {
+export default (props) => {
+  const data = props.flat? generateFlatData(3500) : generateHierarchicalData();
+  const domId = props.flat? 'bubble-chart-flat' : 'bubble-chart';
+
   const width = 1080;
   const height = width;
   centerX = width / 2;
   centerY = height / 2;
   diameter = Math.min(width*0.9, height*0.9);
-  const data = generateFlatData(4000);
   const pack = data => d3Pack()
     .size([diameter, diameter])
     .padding(1)(
@@ -132,14 +136,14 @@ export default () => {
   };
 
   useEffect(() => {
-    const canvas = select('#bubble-chart').append('canvas')
+    const canvas = select(`#${domId}`).append('canvas')
       .attr('id', 'canvas')
       .attr('width', width)
       .attr('height', height);
     context = canvas.node().getContext('2d');
     context.clearRect(0, 0, width, height);
 
-    const hiddenCanvas = select('#bubble-chart').append('canvas')
+    const hiddenCanvas = select(`#${domId}`).append('canvas')
       .attr('id', 'hiddenCanvas')
       .attr('width', width)
       .attr('height', height)
@@ -148,7 +152,7 @@ export default () => {
     hiddenContext.clearRect(0, 0, width, height);
 
     // Start the d3 animation
-    timer(elapsedSinceAnimationStart => {
+    const t = timer(elapsedSinceAnimationStart => {
       dt = elapsedSinceAnimationStart - lastRenderedTime;
       lastRenderedTime = elapsedSinceAnimationStart;
       interpolateZoom(dt);
@@ -156,7 +160,7 @@ export default () => {
     });
 
     // Set up zoom click handler
-    document.getElementById('bubble-chart').addEventListener('click', e => {
+    const clickZoomHandler = e => {
       // Render the hidden color mapped canvas for 'picking'
       renderBubbleChartCanvas(rootNode, width, height, true);
 
@@ -169,13 +173,22 @@ export default () => {
 
       const newFocus = (node && focus !== node) ? node : rootNode;
       zoomToCanvas(newFocus);
-    });
+    }
+    document.getElementById(`${domId}`).addEventListener('click', clickZoomHandler);
+
+    // Cleanup function
+    return () => {
+      // Stop the timer and animations
+      t.stop();
+
+      // Remove event handlers
+      document.getElementById(`${domId}`).removeEventListener('click', clickZoomHandler);
+    }
   });
 
   return (
     <>
-      <h1>Bubble Chart</h1>
-      <div id="bubble-chart"></div>
+      <div id={domId}></div>
     </>
   );
 };

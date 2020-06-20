@@ -11,26 +11,27 @@ export const generateHierarchicalData = () => {
     const randomPostalCodes = postalCodes.filter(pc => Math.random() > 0.6);
 
     return {
-      // TODO: Add ids to all data nodes.
-      // Try data join keys so we can add/remove nodes => Dynamic aggregation on zoom out
       id: uuidv4(),
       name: countryCode,
-      children: randomPostalCodes.map(pc => generatePostalNode(pc)),
+      children: randomPostalCodes.map(pc => generatePostalNode(pc, countryCode)),
     };
   };
 
-  const generatePostalNode = (postalCode) => {
+  const generatePostalNode = (postalCode, countryCode) => {
+    // TODO this can lead to non-leaf nodes with no children
     const randomCommitments = commitments.filter(pc => Math.random() > 0.8);
 
     return {
       id: uuidv4(),
       name: postalCode,
-      children: randomCommitments.map(c => generateCommitmentNode(c)),
+      children: randomCommitments.map(c => generateCommitmentNode(c, countryCode)),
     };
   }
 
-  const generateCommitmentNode = (commitment) => {
-    const numCommitments = Math.max(1, Math.ceil(Math.random() * 12)); // TODO this looks bad when numbers get high
+  const generateCommitmentNode = (commitment, countryCode) => {
+    const numCommitments = countryCode === 'US' ?
+      Math.max(1, Math.ceil(Math.random() * 12)) :
+      Math.max(1, Math.ceil(Math.random() * 500));
     const commitments = new Array(numCommitments);
     for (let i = 0; i < numCommitments; ++i) {
       commitments[i] = {
