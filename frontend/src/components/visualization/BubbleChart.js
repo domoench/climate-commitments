@@ -4,31 +4,7 @@ import { pack, hierarchy } from 'd3-hierarchy';
 import { scaleOrdinal } from 'd3-scale';
 import { schemeSet3 } from 'd3-scale-chromatic';
 import { zoom } from 'd3-zoom';
-import { v4 as uuidv4 } from 'uuid';
-
-// Generate flat hierarchichal data
-export const generateFlatData = (n) => {
-  const countryCodes = ['US', 'CA', 'CN', 'TW', 'IN', 'GL'];
-  const postalCodes = ['pc_1', 'pc_2', 'pc_3', 'pc_4', 'pc_5', 'pc_6', 'pc_7', 'pc_8', 'pc_9', 'pc_10', 'pc_11', 'pc_12', 'pc_13'];
-  const commitmentTypes = ['commitment_1', 'commitment_2', 'commitment_3', 'commitment_4', 'commitment_5'];
-
-  const randomElem = (arr) => arr[Math.ceil(Math.random() * 100) % arr.length]
-
-  // TODO this starts to break down when we get above a few hundred
-  const numCommitments = n;
-  const commitments = new Array(numCommitments);
-
-  for (let i = 0; i < numCommitments; ++i) {
-    commitments[i] = {
-      name: '🌱',
-      id: uuidv4(),
-      commitment: randomElem(commitmentTypes),
-      country: randomElem(countryCodes),
-      postalCode: randomElem(postalCodes),
-    };
-  }
-  return commitments;
-};
+import { generateFlatData } from './helpers';
 
 const renderBubbleChartSVG = (data, width, height) => {
   const packLayout = pack().size([width, height]).padding(8).size([width - 2, height - 2]);

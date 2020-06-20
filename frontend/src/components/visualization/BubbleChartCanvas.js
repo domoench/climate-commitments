@@ -6,7 +6,7 @@ import { scaleOrdinal } from 'd3-scale';
 import { schemePaired } from 'd3-scale-chromatic';
 import { timer } from 'd3-timer';
 import { interpolateZoom as d3InterpolateZoom } from 'd3-interpolate';
-import { generateFlatData } from './BubbleChart';
+import { generateFlatData, generateHierarchicalData } from './helpers';
 
 const colorCircle = scaleOrdinal(schemePaired);
 
@@ -50,11 +50,9 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
   // Clear canvas
   ctx.clearRect(0, 0, width, height);
 
-  //Draw each circle
+  // Draw each circle
   rootNode.each((node) => {
     if (node.depth === 0) { return; }
-
-    ctx.save(); // TODO need to save and restore?
 
     if (hidden) {
       if (!node.pickColor) {
@@ -63,7 +61,8 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
       }
       ctx.fillStyle = node.pickColor;
     } else {
-      ctx.fillStyle = colorCircle(node.data.commitment);
+      const colorKey = `${node.depth}`;
+      ctx.fillStyle = colorCircle(colorKey); // TODO
     }
 
     ctx.beginPath();
@@ -77,8 +76,6 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
     );
     ctx.fill();
     ctx.closePath();
-
-    ctx.restore();
   });
 }
 
@@ -119,15 +116,14 @@ export default () => {
   const data = generateFlatData(4000);
   const pack = data => d3Pack()
     .size([diameter, diameter])
-    .padding(8)(
-      hierarchy({children: data})
-      .sum(d => 1)
-      .sort((a, b) => a.commitment - b.commitment)
-    )
+    .padding(1)(
+      hierarchy(data)
+        .sum(d => 1)
+        .sort((a, b) => a.id - b.id) // TODO I think this doesn't make sense
+    );
   const rootNode = pack(data);
   focus = rootNode;
   vOld = [focus.x, focus.y, focus.r * 2.05];
-
 
   zoomInfo = {
     centerX: width / 2,
