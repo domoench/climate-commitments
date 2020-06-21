@@ -9,6 +9,7 @@ import ProgressBar from "react-bootstrap/ProgressBar"
 
 import Welcome from "../commitment_components/Welcome"
 import CommitmentsOverview from "../commitment_components/CommitmentsOverview"
+import Signup from "../commitment_components/Signup"
 
 const Commitments = () => {
   const [step, setStep] = useState(0)
@@ -30,8 +31,10 @@ const Commitments = () => {
   return (
     <Layout>
       <SEO title="Commitments" />
+
       <Welcome stepVal={0} currentStep={step} onClick={nextStep} />
       <CommitmentsOverview stepVal={1} currentStep={step} onClick={nextStep} />
+      <Signup stepVal={2} currentStep={step} onClick={nextStep} />
 
       <div className="text-center mt-4">
         <Button onClick={prevStep} variant="light" className="mr-4" size="lg">

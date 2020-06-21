@@ -1,7 +1,5 @@
 import React from "react"
 
-import Button from "react-bootstrap/Button"
-
 const Welcome = ({ currentStep, stepVal, onClick }) => {
   return currentStep !== stepVal ? null : (
     <div className="text-center">
