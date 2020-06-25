@@ -6,7 +6,9 @@ import { scaleOrdinal } from 'd3-scale';
 import { schemePaired } from 'd3-scale-chromatic';
 import { timer } from 'd3-timer';
 import { interpolateZoom as d3InterpolateZoom } from 'd3-interpolate';
-import { generateFlatData, generateHierarchicalData } from './helpers';
+import { generateFlatData, generateHierarchicalData, genColor } from './helpers';
+
+const baseFontSize = 200;
 
 const colorCircle = scaleOrdinal(schemePaired);
 
@@ -26,22 +28,6 @@ let centerX = 0;
 let centerY = 0;
 let focus = null;
 let vOld = null;
-
-// TODO move to a utils function file
-// Generates the next color in the sequence, going from 0,0,0 to 255,255,255.
-// From: https://bocoup.com/weblog/2d-picking-in-canvas
-let nextGenCol = 1;
-function genColor(){
-  var ret = [];
-  if(nextGenCol < 16777215){
-    ret.push(nextGenCol & 0xff); // R
-    ret.push((nextGenCol & 0xff00) >> 8); // G
-    ret.push((nextGenCol & 0xff0000) >> 16); // B
-    nextGenCol += 1;
-  }
-  var col = "rgb(" + ret.join(',') + ")";
-  return col;
-};
 
 const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
   // Current context
@@ -65,17 +51,29 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
       ctx.fillStyle = colorCircle(colorKey); // TODO
     }
 
+    // Scale and translate positions
+    const nodeX = (node.x - zoomInfo.centerX) * zoomInfo.scale + centerX;
+    const nodeY = (node.y - zoomInfo.centerY) * zoomInfo.scale + centerY;
+    const nodeR = node.r * zoomInfo.scale;
+
     ctx.beginPath();
-    ctx.arc(
-      (node.x - zoomInfo.centerX) * zoomInfo.scale + centerX,
-      (node.y - zoomInfo.centerY) * zoomInfo.scale + centerY,
-      node.r * zoomInfo.scale,
-      0,
-      2 * Math.PI,
-      true
-    );
+    ctx.arc(nodeX, nodeY, nodeR, 0, 2 * Math.PI, true);
     ctx.fill();
     ctx.closePath();
+
+    // Commitment Labels.
+    // Only render after the animation is complete and focus is on individual commitments.
+    const renderLabels =
+      interpolator === null &&
+      (focus.height === 0 && node.height === 0);
+    if (renderLabels) {
+      const sizeRatio = nodeR / diameter;
+      const fontSize = Math.floor(baseFontSize * sizeRatio);
+      ctx.font = `${fontSize}px Arial`;
+      ctx.fillStyle = "black";
+      ctx.textAlign = "center";
+      ctx.fillText(node.data.name, nodeX, nodeY);
+    }
   });
 }
 

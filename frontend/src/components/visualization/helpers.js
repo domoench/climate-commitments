@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import names from './names';
 
 // Generate dummy hierarchichal data
 // Hierarchy: Country -> Postal Code -> Commitment Type -> Individual commitments
@@ -36,7 +37,7 @@ export const generateHierarchicalData = () => {
     for (let i = 0; i < numCommitments; ++i) {
       commitments[i] = {
         id: uuidv4(),
-        name: '🌱'
+        name: generateName(),
       };
     }
 
@@ -68,7 +69,7 @@ export const generateFlatData = (n) => {
 
   for (let i = 0; i < numCommitments; ++i) {
     commitments[i] = {
-      name: '🌱',
+      name: generateName(),
       id: uuidv4(),
       commitment: randomElem(commitmentTypes),
       country: randomElem(countryCodes),
@@ -82,3 +83,21 @@ export const generateFlatData = (n) => {
   };
 };
 
+// TODO move to a utils function file
+// Generates the next color in the sequence, going from 0,0,0 to 255,255,255.
+// From: https://bocoup.com/weblog/2d-picking-in-canvas
+let nextGenCol = 1;
+export const genColor = () => {
+  const ret = [];
+  if(nextGenCol < 16777215){
+    ret.push(nextGenCol & 0xff); // R
+    ret.push((nextGenCol & 0xff00) >> 8); // G
+    ret.push((nextGenCol & 0xff0000) >> 16); // B
+    nextGenCol += 1;
+  }
+  return "rgb(" + ret.join(',') + ")";
+};
+
+const randomName = () => names[Math.floor(Math.random() * names.length)]
+
+const generateName = () => Math.random() < 0.2 ? 'Anonymous' : `${randomName()} ${randomName()}`;
