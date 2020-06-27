@@ -8,7 +8,6 @@ import { timer } from 'd3-timer';
 import _debounce from 'lodash.debounce';
 import { interpolateZoom as d3InterpolateZoom } from 'd3-interpolate';
 import { generateFlatData, generateHierarchicalData, genColor } from './helpers';
-import useWindowSize from './useWindowSize';
 
 const baseFontSize = 200;
 
@@ -132,7 +131,6 @@ export default (props) => {
     };
   }, [ref]);
 
-  // TODO learned you need to pass ref to a non-component (an actual element like div, h1, etc)
   return (
     <div ref={ref}>
       <Viz flat={props.flat} dimensions={dimensions} />
