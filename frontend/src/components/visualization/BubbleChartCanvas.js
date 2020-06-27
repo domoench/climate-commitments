@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { easeCubic } from 'd3-ease';
 import { select } from 'd3-selection';
 import { pack as d3Pack, hierarchy } from 'd3-hierarchy';
 import { scaleOrdinal } from 'd3-scale';
 import { schemePaired } from 'd3-scale-chromatic';
 import { timer } from 'd3-timer';
+import _debounce from 'lodash.debounce';
 import { interpolateZoom as d3InterpolateZoom } from 'd3-interpolate';
 import { generateFlatData, generateHierarchicalData, genColor } from './helpers';
+import useWindowSize from './useWindowSize';
 
 const baseFontSize = 200;
 
@@ -107,12 +109,44 @@ const interpolateZoom = dt => {
   }
 };
 
+// Viz wrapper: Mainly manages dynamically resizing the visualization.
 export default (props) => {
+  const ref = useRef(null);
+  const [dimensions, setDimensions] = useState(null);
+
+  // Measure the browser-rendered dimensions of a DOM element
+  const setVizDimensions = () => {
+    const vizBoundingRect = ref.current.getBoundingClientRect();
+    setDimensions({
+      width: vizBoundingRect.width,
+      height: vizBoundingRect.height,
+    });
+  };
+
+  useEffect(() => {
+    setVizDimensions();
+    const debouncedSetDimensions = _debounce(() => setVizDimensions(), 160);
+    window.addEventListener('resize', debouncedSetDimensions);
+    return () => {
+      window.removeEventListener('resize', debouncedSetDimensions);
+    };
+  }, [ref]);
+
+  // TODO learned you need to pass ref to a non-component (an actual element like div, h1, etc)
+  return (
+    <div ref={ref}>
+      <Viz flat={props.flat} dimensions={dimensions} />
+    </div>
+  );
+};
+
+const Viz = (props) => {
+  const { width } = props.dimensions ? props.dimensions : { width: 1, height: 1};
+  const height = width;
+
   const data = props.flat? generateFlatData(3500) : generateHierarchicalData();
   const domId = props.flat? 'bubble-chart-flat' : 'bubble-chart';
 
-  const width = 1080;
-  const height = width;
   centerX = width / 2;
   centerY = height / 2;
   diameter = Math.min(width*0.9, height*0.9);
@@ -134,15 +168,13 @@ export default (props) => {
   };
 
   useEffect(() => {
-    const canvas = select(`#${domId}`).append('canvas')
-      .attr('id', 'canvas')
+    const canvas = select(`#${domId}`).select('#canvas')
       .attr('width', width)
       .attr('height', height);
     context = canvas.node().getContext('2d');
     context.clearRect(0, 0, width, height);
 
-    const hiddenCanvas = select(`#${domId}`).append('canvas')
-      .attr('id', 'hiddenCanvas')
+    const hiddenCanvas = select(`#${domId}`).select('#hiddenCanvas')
       .attr('width', width)
       .attr('height', height)
       .attr('style', 'display: none');
@@ -186,7 +218,10 @@ export default (props) => {
 
   return (
     <>
-      <div id={domId}></div>
+      <div id={domId}>
+        <canvas id="canvas"></canvas>
+        <canvas id="hiddenCanvas"></canvas>
+      </div>
     </>
   );
 };

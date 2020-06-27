@@ -83,7 +83,6 @@ export const generateFlatData = (n) => {
   };
 };
 
-// TODO move to a utils function file
 // Generates the next color in the sequence, going from 0,0,0 to 255,255,255.
 // From: https://bocoup.com/weblog/2d-picking-in-canvas
 let nextGenCol = 1;
