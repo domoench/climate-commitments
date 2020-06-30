@@ -11,10 +11,11 @@ export const generateHierarchicalData = () => {
   const generateCountryNode = (countryCode) => {
     const randomPostalCodes = postalCodes.filter(pc => Math.random() > 0.6);
 
+    const children = randomPostalCodes.map(pc => generatePostalNode(pc, countryCode));
     return {
       id: uuidv4(),
       name: countryCode,
-      children: randomPostalCodes.map(pc => generatePostalNode(pc, countryCode)),
+      children,
     };
   };
 
@@ -22,10 +23,12 @@ export const generateHierarchicalData = () => {
     // TODO this can lead to non-leaf nodes with no children
     const randomCommitments = commitments.filter(pc => Math.random() > 0.8);
 
+    const children = randomCommitments.map(c => generateCommitmentNode(c, countryCode));
+    console.log('children', children);
     return {
       id: uuidv4(),
       name: postalCode,
-      children: randomCommitments.map(c => generateCommitmentNode(c, countryCode)),
+      children,
     };
   }
 

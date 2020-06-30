@@ -17,7 +17,7 @@ const colorCircle = scaleOrdinal(schemePaired);
 // TODO so many file globals, can we cleanup to make the functions easier to understand?
 let context = null;
 let hiddenContext = null;
-var colToCircle = {};
+const colToCircle = {};
 let lastRenderedTime = 0;
 let dt = 0;
 let interpolator = null;
@@ -108,18 +108,15 @@ const interpolateZoom = dt => {
   }
 };
 
-// Viz wrapper: Mainly manages dynamically resizing the visualization.
-export default (props) => {
+// Viz wrapper: Manages dynamically resizing the visualization.
+export default ({ data }) => {
   const ref = useRef(null);
   const [dimensions, setDimensions] = useState(null);
 
   // Measure the browser-rendered dimensions of a DOM element
   const setVizDimensions = () => {
-    const vizBoundingRect = ref.current.getBoundingClientRect();
-    setDimensions({
-      width: vizBoundingRect.width,
-      height: vizBoundingRect.height,
-    });
+    const { width, height } = ref.current.getBoundingClientRect();
+    setDimensions({ width, height });
   };
 
   useEffect(() => {
@@ -133,17 +130,16 @@ export default (props) => {
 
   return (
     <div ref={ref}>
-      <Viz flat={props.flat} dimensions={dimensions} />
+      <Viz data={data} dimensions={dimensions} />
     </div>
   );
 };
 
-const Viz = (props) => {
-  const { width } = props.dimensions ? props.dimensions : { width: 1, height: 1};
+const Viz = ({ data, dimensions }) => {
+  const { width } = dimensions ? dimensions : { width: 1, height: 1};
   const height = width;
 
-  const data = props.flat? generateFlatData(3500) : generateHierarchicalData();
-  const domId = props.flat? 'bubble-chart-flat' : 'bubble-chart';
+  const domId = 'bubble-chart';
 
   centerX = width / 2;
   centerY = height / 2;
