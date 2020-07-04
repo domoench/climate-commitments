@@ -61,6 +61,7 @@ export const generateHierarchicalData = () => {
 const randomElem = (arr) => arr[Math.ceil(Math.random() * 100) % arr.length]
 const randomBool = () => randomElem([true, false]);
 
+// TODO delete other (flat and hierarchichal) data generators
 // Generate mock raw commitments data array
 export const generateData = (n) => {
   const countryCodes = ['US', 'CA', 'CN', 'TW', 'IN', 'GL'];
@@ -99,15 +100,14 @@ export const createDataHierarchy = (hierarchyKeys, commitmentData) => {
   // Build leaves
   // For each commitment, you might create up to 5 leaf nodes
   const leafNodes = [];
-  console.log('COMMITMENT_TYPES', COMMITMENT_TYPES);
   commitmentData.forEach((datum) => {
     Object.keys(COMMITMENT_TYPES).forEach((commitmentType) => {
       if (datum.commitments[commitmentType]) {
         leafNodes.push({
           ...datum,
           commitmentType,
-          // id: `${datum.id}-${commitmentType}`,
-          id: uuidv4(),
+          id: `${datum.id}-${commitmentType}`,
+          // id: uuidv4(),
         });
       }
     });

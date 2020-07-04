@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { easeCubic } from 'd3-ease';
-import { select } from 'd3-selection';
+import { select, mouse } from 'd3-selection';
 import { pack as d3Pack, hierarchy } from 'd3-hierarchy';
 import { scaleOrdinal } from 'd3-scale';
 import { schemePaired } from 'd3-scale-chromatic';
@@ -31,7 +31,6 @@ let focus = null;
 let vOld = null;
 
 const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
-  console.log(`renderBubbleChartCanvas() width:${width}. height:${height}. hidden:${hidden}`);
   // Current context
   const ctx = hidden ? hiddenContext : context;
 
@@ -50,9 +49,8 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
       ctx.fillStyle = node.pickColor;
     } else {
       const isLeaf = node.height === 0;
-      // const colorKey = isLeaf ? node.data.commitmentType : node.depth;
-      const colorKey = isLeaf ? node.depth : node.data.name;
-      ctx.fillStyle = colorCircle(colorKey); // TODO
+      const colorKey = isLeaf ? node.data.commitmentType : node.depth;
+      ctx.fillStyle = colorCircle(colorKey);
     }
 
     // Scale and translate positions
@@ -64,16 +62,25 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
     ctx.arc(nodeX, nodeY, nodeR, 0, 2 * Math.PI, true);
     ctx.fill();
     ctx.closePath();
+  });
+
+  // Draw labels on top (requires second loop)
+  // TODO If this gets too inefficient, you could queue up the required label renders during the
+  // first loop then simply execute here.
+  rootNode.each((node) => {
+    // Scale and translate positions
+    const nodeX = (node.x - zoomInfo.centerX) * zoomInfo.scale + centerX;
+    const nodeY = (node.y - zoomInfo.centerY) * zoomInfo.scale + centerY;
+    const nodeR = node.r * zoomInfo.scale;
 
     // Commitment Labels.
-    // Only render after the animation is complete and focus is on individual commitments.
-    const renderLabels = true;
-    /*
-    const renderLabels =
-      interpolator === null &&
-      (focus.height === 0 && node.height === 0);
-      */
-    if (renderLabels) {
+    // Only render after the animation is complete and if node is at or 1 lower than focus level.
+    // TODO: Only render labels for descendents of the focused node
+    const animationComplete = interpolator === null;
+    const nodeIsLeafAndFocused = focus.height === 0 && node.height === 0;
+    const nodeDeeperThanFocus = focus.depth + 1 === node.depth;
+    const renderLabels = animationComplete && (nodeIsLeafAndFocused || nodeDeeperThanFocus);
+    if (!hidden && renderLabels) {
       const sizeRatio = nodeR / diameter;
       const fontSize = Math.floor(baseFontSize * sizeRatio);
       ctx.font = `${fontSize}px Arial`;
@@ -155,7 +162,7 @@ const Viz = ({ data, dimensions }) => {
     .padding(1)(
       hierarchy(data)
         .sum(d => 1)
-        .sort((a, b) => a.id - b.id) // TODO I think this doesn't make sense
+        .sort((a, b) => a.data.id - b.data.id)
     );
   const rootNode = pack(data);
   focus = rootNode;
@@ -189,24 +196,23 @@ const Viz = ({ data, dimensions }) => {
       renderBubbleChartCanvas(rootNode, width, height, false);
     });
 
-    // Set up zoom click handler
-    const clickZoomHandler = e => {
+    const clickZoomHandler = function() {
       // Render the hidden color mapped canvas for 'picking'
       renderBubbleChartCanvas(rootNode, width, height, true);
 
       // Pick the node being clicked
-      const mouseX = e.layerX;
-			const mouseY = e.layerY;
-      console.log('click! ', [mouseX, mouseY]);
+      const [mouseX, mouseY] = mouse(this);
       const pixelCol = hiddenContext.getImageData(mouseX, mouseY, 1, 1).data;
       const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;
       const node = colToCircle[colString];
-      console.log('node clicked', node);
 
+      // Zoom to it
       const newFocus = (node && focus !== node) ? node : rootNode;
       zoomToCanvas(newFocus);
     }
-    document.getElementById(`${domId}`).addEventListener('click', clickZoomHandler);
+
+    // document.getElementById(`${domId}`).addEventListener('click', clickZoomHandler);
+    canvas.on('click', clickZoomHandler);
 
     // Cleanup function
     return () => {
@@ -214,7 +220,7 @@ const Viz = ({ data, dimensions }) => {
       t.stop();
 
       // Remove event handlers
-      document.getElementById(`${domId}`).removeEventListener('click', clickZoomHandler);
+      canvas.on('click', null);
     }
   });
 
