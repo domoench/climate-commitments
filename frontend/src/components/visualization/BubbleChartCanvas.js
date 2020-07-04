@@ -7,7 +7,7 @@ import { schemePaired } from 'd3-scale-chromatic';
 import { timer } from 'd3-timer';
 import _debounce from 'lodash.debounce';
 import { interpolateZoom as d3InterpolateZoom } from 'd3-interpolate';
-import { generateFlatData, generateHierarchicalData, genColor } from './helpers';
+import { genColor } from './helpers';
 
 const baseFontSize = 200;
 
@@ -31,6 +31,7 @@ let focus = null;
 let vOld = null;
 
 const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
+  console.log(`renderBubbleChartCanvas() width:${width}. height:${height}. hidden:${hidden}`);
   // Current context
   const ctx = hidden ? hiddenContext : context;
 
@@ -48,7 +49,9 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
       }
       ctx.fillStyle = node.pickColor;
     } else {
-      const colorKey = `${node.depth}`;
+      const isLeaf = node.height === 0;
+      // const colorKey = isLeaf ? node.data.commitmentType : node.depth;
+      const colorKey = isLeaf ? node.depth : node.data.name;
       ctx.fillStyle = colorCircle(colorKey); // TODO
     }
 
@@ -64,9 +67,12 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
 
     // Commitment Labels.
     // Only render after the animation is complete and focus is on individual commitments.
+    const renderLabels = true;
+    /*
     const renderLabels =
       interpolator === null &&
       (focus.height === 0 && node.height === 0);
+      */
     if (renderLabels) {
       const sizeRatio = nodeR / diameter;
       const fontSize = Math.floor(baseFontSize * sizeRatio);
@@ -191,9 +197,11 @@ const Viz = ({ data, dimensions }) => {
       // Pick the node being clicked
       const mouseX = e.layerX;
 			const mouseY = e.layerY;
+      console.log('click! ', [mouseX, mouseY]);
       const pixelCol = hiddenContext.getImageData(mouseX, mouseY, 1, 1).data;
       const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;
       const node = colToCircle[colString];
+      console.log('node clicked', node);
 
       const newFocus = (node && focus !== node) ? node : rootNode;
       zoomToCanvas(newFocus);
