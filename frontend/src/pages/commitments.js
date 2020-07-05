@@ -15,6 +15,19 @@ const Commitments = () => {
   const [step, setStep] = useState(0)
   const [error, toggleError] = useState(false)
 
+  const [userState, setUserState] = useState({
+    name: "",
+    zip: "",
+    email: "",
+    commitments: {
+      callRep: false,
+      talk: false,
+      join: false,
+      divest: false,
+      callBank: false,
+    },
+  })
+
   const showError = e => {
     toggleError(true)
   }
@@ -33,7 +46,13 @@ const Commitments = () => {
       <SEO title="Commitments" />
 
       <Welcome stepVal={0} currentStep={step} onClick={nextStep} />
-      <CommitmentsOverview stepVal={1} currentStep={step} onClick={nextStep} />
+      <CommitmentsOverview
+        stepVal={1}
+        currentStep={step}
+        onClick={nextStep}
+        userState={userState}
+        setUserState={setUserState}
+      />
       <Signup stepVal={2} currentStep={step} onClick={nextStep} />
 
       <div className="text-center mt-4">
