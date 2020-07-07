@@ -8,8 +8,8 @@ import SEO from "../components/seo"
 const IndexPage = () => (
   <Layout>
     <SEO title="Home" />
-    <div className="bg-primary">
-      <h1>Hi people</h1>
+    <div>
+      <h1 className="lead">Hi people</h1>
       <p>Welcome to your new Gatsby site.</p>
       <p>Now go build something great.</p>
     </div>
@@ -17,10 +17,21 @@ const IndexPage = () => (
       <Image />
     </div>
     <ul>
-      <li><Link to="/elected-reps/">Elected Reps</Link></li>
-      <li><Link to="/firebase-experiments/">Firebase Experiments</Link></li>
-      <li><Link to="/viz/">Hierarchical Data Visualization</Link></li>
-      <li><Link to="/viz-flat/">Flat Data Visualization</Link></li>
+      <li>
+        <Link to="/commitments">Commitments Flow</Link>
+      </li>
+      <li>
+        <Link to="/elected-reps/">Elected Reps</Link>
+      </li>
+      <li>
+        <Link to="/firebase-experiments/">Firebase Experiments</Link>
+      </li>
+      <li>
+        <Link to="/viz/">Hierarchical Data Visualization</Link>
+      </li>
+      <li>
+        <Link to="/viz-flat/">Flat Data Visualization</Link>
+      </li>
     </ul>
   </Layout>
 )
