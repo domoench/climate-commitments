@@ -134,7 +134,7 @@ export default ({ data }) => {
 
   useEffect(() => {
     setVizDimensions();
-    const debouncedSetDimensions = _debounce(() => setVizDimensions(), 160);
+    const debouncedSetDimensions = _debounce(() => setVizDimensions(), 250);
     window.addEventListener('resize', debouncedSetDimensions);
     return () => {
       window.removeEventListener('resize', debouncedSetDimensions);
