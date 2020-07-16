@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+import Button from "react-bootstrap/Button"
+import Row from "react-bootstrap/Row"
+import Col from "react-bootstrap/Col"
+import Container from "react-bootstrap/Container"
 
 import Layout from '../components/layout';
 import BubbleChartCanvas from '../components/visualization/BubbleChartCanvas';
@@ -9,24 +13,53 @@ import { generateData, createDataHierarchy } from '../components/visualization/h
 
 const HIERARCHY_KEYS = ['country', 'postalCode', 'commitmentType'];
 
+const buttonStyle = {
+  marginLeft: 4,
+  marginRight: 4,
+};
+
+const rowStyle = {
+  padding: '4px 0',
+}
+
 const HierarchyControls = ({ keys, toggleKey, shiftKeyUp, shiftKeyDown }) => {
   return (
-    <ul>
-      {keys.map(keyObj =>
-        <div key={keyObj.key}>
-          {keyObj.key}
-          <button onClick={() => toggleKey(keyObj.key)}>
-            {keyObj.active ? 'Off' : 'On'}
-          </button>
-          <button onClick={() => shiftKeyUp(keyObj.key)}>
-            Up
-          </button>
-          <button onClick={() => shiftKeyDown(keyObj.key)}>
-            Down
-          </button>
-        </div>
+    <Container>
+      {keys.map((keyObj, i) =>
+        <Row
+          style={rowStyle}
+          key={keyObj.key}
+        >
+          <Col>
+            {`${i + 1})`} {keyObj.key}
+          </Col>
+          <Col xs={8}>
+            <Button
+              size='sm'
+              style={buttonStyle}
+              variant={keyObj.active ? 'success' : 'danger'}
+              onClick={() => toggleKey(keyObj.key)}
+            >
+              {keyObj.active ? 'On' : 'Off'}
+            </Button>
+            <Button
+              size='sm'
+              style={buttonStyle}
+              onClick={() => shiftKeyUp(keyObj.key)}
+            >
+              Up
+            </Button>
+            <Button
+              size='sm'
+              style={buttonStyle}
+              onClick={() => shiftKeyDown(keyObj.key)}
+            >
+              Down
+            </Button>
+          </Col>
+        </Row>
       )}
-    </ul>
+    </Container>
   );
 }
 
