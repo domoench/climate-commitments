@@ -190,6 +190,7 @@ const Viz = ({ data, dimensions }) => {
 
     // Start the d3 animation
     const t = timer(elapsedSinceAnimationStart => {
+      // TODO this runs forever, rerendering constantly: Very hard on CPU, and makes interaction laggy
       dt = elapsedSinceAnimationStart - lastRenderedTime;
       lastRenderedTime = elapsedSinceAnimationStart;
       interpolateZoom(dt);
