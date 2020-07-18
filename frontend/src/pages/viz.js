@@ -92,6 +92,7 @@ export default () => {
     }
   }
 
+  // TODO when key is last on list and pressing down there is an error
   const shiftKeyDown = (key) => {
     const keyIdx = keys.map(k => k.key).findIndex(k => k === key); // Assume it is never -1
     const nextIdx = keyIdx + 1;

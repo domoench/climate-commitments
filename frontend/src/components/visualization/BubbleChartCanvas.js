@@ -30,7 +30,12 @@ let centerY = 0;
 let focus = null;
 let vOld = null;
 
+// The current timer instance
+let t;
+
+
 const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
+  console.log(`renderBubbleChart(). hidden:${hidden}. scale:${zoomInfo.scale}`);
   // Current context
   const ctx = hidden ? hiddenContext : context;
 
@@ -58,10 +63,13 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
     const nodeY = (node.y - zoomInfo.centerY) * zoomInfo.scale + centerY;
     const nodeR = node.r * zoomInfo.scale;
 
-    ctx.beginPath();
-    ctx.arc(nodeX, nodeY, nodeR, 0, 2 * Math.PI, true);
-    ctx.fill();
-    ctx.closePath();
+    const nodeWayDeeperThanFocus = node.depth - focus.depth >= 4;
+    if (!nodeWayDeeperThanFocus) {
+      ctx.beginPath();
+      ctx.arc(nodeX, nodeY, nodeR, 0, 2 * Math.PI, true);
+      ctx.fill();
+      ctx.closePath();
+    }
   });
 
   // Draw labels on top (requires second loop)
@@ -96,10 +104,14 @@ const zoomToCanvas = focusNode => {
 
   focus = focusNode;
   const v = [focus.x, focus.y, focus.r * 2.05]; // New viewport
+  console.log(`zoomToCanvas(). duration:${duration} new focus ${focus.data?.name}: `, focus);
+  // console.log('interpolate from: ', vOld);
+  // console.log('interpolate to: ', v);
 
   // Create interpolation between current and new viewport
-  interpolator = d3InterpolateZoom(vOld, v);
+  // interpolator = null; // TODO try destroying here
   interpolationTimeElapsed = 0;
+  interpolator = d3InterpolateZoom(vOld, v);
   duration = interpolator.duration;
 
   vOld = v;
@@ -108,11 +120,15 @@ const zoomToCanvas = focusNode => {
 const interpolateZoom = dt => {
   if (interpolator) {
     interpolationTimeElapsed += dt;
-    var easedT = easeCubic(interpolationTimeElapsed / duration);
+    let normalizedDt = interpolationTimeElapsed / duration;
+    // console.log(`dt:${Math.floor(dt)}. normalizedDt: elapsed:${Math.floor(interpolationTimeElapsed)} / duration:${Math.floor(duration)}.`);
+    var easedT = easeCubic(normalizedDt);
 
-    zoomInfo.centerX = interpolator(easedT)[0];
-    zoomInfo.centerY = interpolator(easedT)[1];
-    zoomInfo.scale = diameter / interpolator(easedT)[2];
+    const interpolated = interpolator(easedT);
+    // console.log(`interpolateZoom(). normalizedDt:${normalizedDt}. easedT:${easedT}. [x,y,r]:${interpolated}`);
+    zoomInfo.centerX = interpolated[0];
+    zoomInfo.centerY = interpolated[1];
+    zoomInfo.scale = diameter / interpolated[2];
 
     // Once zoom is done, destroy this interpolator
     if (interpolationTimeElapsed >= duration) {
@@ -174,6 +190,31 @@ const Viz = ({ data, dimensions }) => {
     scale: 1
   };
 
+  const startAnimation = () => {
+    // Reset animation state vars
+    lastRenderedTime = 0;
+
+    const t = timer(elapsedSinceAnimationStart => {
+      dt = elapsedSinceAnimationStart - lastRenderedTime;
+      lastRenderedTime = elapsedSinceAnimationStart;
+      interpolateZoom(dt);
+      renderBubbleChartCanvas(rootNode, width, height, false);
+
+      // TODO something smarter
+      if (elapsedSinceAnimationStart > duration * 3) {
+        t.stop();
+      }
+    });
+    return t;
+  }
+
+  const stopAnimation = (t) => {
+    console.log('stopping animation for: ', t);
+    if (t) {
+      t.stop();
+    }
+  }
+
   useEffect(() => {
     const canvas = select(`#${domId}`).select('#canvas')
       .attr('width', width)
@@ -188,37 +229,36 @@ const Viz = ({ data, dimensions }) => {
     hiddenContext = hiddenCanvas.node().getContext('2d');
     hiddenContext.clearRect(0, 0, width, height);
 
-    // Start the d3 animation
-    const t = timer(elapsedSinceAnimationStart => {
-      // TODO this runs forever, rerendering constantly: Very hard on CPU, and makes interaction laggy
-      dt = elapsedSinceAnimationStart - lastRenderedTime;
-      lastRenderedTime = elapsedSinceAnimationStart;
-      interpolateZoom(dt);
-      renderBubbleChartCanvas(rootNode, width, height, false);
-    });
 
     const clickZoomHandler = function() {
+      console.log('~~~ 🦀 CLICK 🦀 ~~~');
       // Render the hidden color mapped canvas for 'picking'
       renderBubbleChartCanvas(rootNode, width, height, true);
 
       // Pick the node being clicked
       const [mouseX, mouseY] = mouse(this);
+      console.log(`[mouseX, mouseY]: `, [mouseX, mouseY]);
       const pixelCol = hiddenContext.getImageData(mouseX, mouseY, 1, 1).data;
       const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;
+      // console.log(`colToCircle: `, colToCircle);
+      console.log(`colString: `, colString);
       const node = colToCircle[colString];
+      console.log(`clicked ${node?.data?.name}: `, node);
 
       // Zoom to it
       const newFocus = (node && focus !== node) ? node : rootNode;
+      stopAnimation(t);
       zoomToCanvas(newFocus);
+      t = startAnimation(); // TODO consequence of repeatedly overwriting this? Old timers get GC'd?
     }
-
-    // document.getElementById(`${domId}`).addEventListener('click', clickZoomHandler);
     canvas.on('click', clickZoomHandler);
+
+    // The first render (without animation)
+    renderBubbleChartCanvas(rootNode, width, height, false);
 
     // Cleanup function
     return () => {
-      // Stop the timer and animations
-      t.stop();
+      stopAnimation(t);
 
       // Remove event handlers
       canvas.on('click', null);
