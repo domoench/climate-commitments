@@ -35,9 +35,9 @@ let t;
 
 
 const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
-  console.log(`renderBubbleChart(). hidden:${hidden}. scale:${zoomInfo.scale}`);
   // Current context
   const ctx = hidden ? hiddenContext : context;
+  // hidden = true; // TODO
 
   // Clear canvas
   ctx.clearRect(0, 0, width, height);
@@ -108,9 +108,6 @@ const zoomToCanvas = focusNode => {
 
   focus = focusNode;
   const v = [focus.x, focus.y, focus.r * 2.05]; // New viewport
-  console.log(`zoomToCanvas(). duration:${duration} new focus ${focus.data?.name}: `, focus);
-  // console.log('interpolate from: ', vOld);
-  // console.log('interpolate to: ', v);
 
   // Create interpolation between current and new viewport
   // interpolator = null; // TODO try destroying here
@@ -125,11 +122,9 @@ const interpolateZoom = dt => {
   if (interpolator) {
     interpolationTimeElapsed += dt;
     let normalizedDt = interpolationTimeElapsed / duration;
-    // console.log(`dt:${Math.floor(dt)}. normalizedDt: elapsed:${Math.floor(interpolationTimeElapsed)} / duration:${Math.floor(duration)}.`);
     var easedT = easeCubic(normalizedDt);
 
     const interpolated = interpolator(easedT);
-    // console.log(`interpolateZoom(). normalizedDt:${normalizedDt}. easedT:${easedT}. [x,y,r]:${interpolated}`);
     zoomInfo.centerX = interpolated[0];
     zoomInfo.centerY = interpolated[1];
     zoomInfo.scale = diameter / interpolated[2];
@@ -213,7 +208,6 @@ const Viz = ({ data, dimensions }) => {
   }
 
   const stopAnimation = (t) => {
-    console.log('stopping animation for: ', t);
     if (t) {
       t.stop();
     }
@@ -233,21 +227,15 @@ const Viz = ({ data, dimensions }) => {
     hiddenContext = hiddenCanvas.node().getContext('2d');
     hiddenContext.clearRect(0, 0, width, height);
 
-
     const clickZoomHandler = function() {
-      console.log('~~~ 🦀 CLICK 🦀 ~~~');
       // Render the hidden color mapped canvas for 'picking'
       renderBubbleChartCanvas(rootNode, width, height, true);
 
       // Pick the node being clicked
       const [mouseX, mouseY] = mouse(this);
-      console.log(`[mouseX, mouseY]: `, [mouseX, mouseY]);
       const pixelCol = hiddenContext.getImageData(mouseX, mouseY, 1, 1).data;
       const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;
-      // console.log(`colToCircle: `, colToCircle);
-      console.log(`colString: `, colString);
       const node = colToCircle[colString];
-      console.log(`clicked ${node?.data?.name}: `, node);
 
       // TODO picking bug: When zoomed way out and attempting to click on an individual node,
       // anti-aliasing of the small individual nodes creates pixels that are slightly off from
