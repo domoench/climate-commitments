@@ -52,6 +52,10 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
         colToCircle[node.pickColor] = node;
       }
       ctx.fillStyle = node.pickColor;
+
+      // TODO Attempt to fix anti-aliasing color picking bug.
+      // This doesn't fix it fully, not sure whether this helps a little or not
+      ctx.isSmoothingEnabled = false;
     } else {
       const isLeaf = node.height === 0;
       const colorKey = isLeaf ? node.data.commitmentType : node.depth;
@@ -244,6 +248,11 @@ const Viz = ({ data, dimensions }) => {
       console.log(`colString: `, colString);
       const node = colToCircle[colString];
       console.log(`clicked ${node?.data?.name}: `, node);
+
+      // TODO picking bug: When zoomed way out and attempting to click on an individual node,
+      // anti-aliasing of the small individual nodes creates pixels that are slightly off from
+      // the intended pick color - leading to non-existant node lookups, or sometimes existing but
+      // wrong node picks.
 
       // Zoom to it
       const newFocus = (node && focus !== node) ? node : rootNode;
