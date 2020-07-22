@@ -6,6 +6,7 @@ import Card from "react-bootstrap/Card"
 import Row from "react-bootstrap/Row"
 import Badge from "react-bootstrap/Badge"
 import rep from "../images/rep.jpeg"
+import commitments from "./commitments"
 
 const CommitmentsOverview = ({
   currentStep,
@@ -13,44 +14,6 @@ const CommitmentsOverview = ({
   setUserState,
   userState,
 }) => {
-  const commitments = [
-    {
-      action: "Call your representative",
-      text:
-        "National American leadership has failed to address the crisis. We must speak up and voice our views to public officials to ensure climate progress.",
-      button: "CALL",
-      id: "callRep",
-    },
-    {
-      action: "Talk to three people",
-      text:
-        "Talking to people we know is the first step toward breaking the climate silence.",
-      button: "TALK",
-      id: "talk",
-    },
-    {
-      action: "Join a organization",
-      text:
-        " Through the hard work of organizations dedicated to climate and the environment, we can aggregate our efforts to make progress.",
-      button: "JOIN",
-      id: "join",
-    },
-    {
-      action: "Encourage your employer to divest",
-      text:
-        "bloom psdopfasdjio asdf asdf asdf asdfasdf asdf asd ff oasid aiosioao aooas etlml asle oi",
-      button: "DIVEST",
-      id: "divest",
-    },
-    {
-      action: "Call your bank",
-      text:
-        "All the major consumer banks in the US are deeply involved in fossil fuel financing, including since Paris. If more consumers voice their opinions, large banks will change their behavior.",
-      button: "BANK",
-      id: "callBank",
-    },
-  ]
-
   const commitClick = id => {
     console.log(`clicked ${id}`)
     console.log(userState.commitments[id])

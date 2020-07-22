@@ -10,6 +10,7 @@ import ProgressBar from "react-bootstrap/ProgressBar"
 import Welcome from "../commitment_components/Welcome"
 import CommitmentsOverview from "../commitment_components/CommitmentsOverview"
 import Signup from "../commitment_components/Signup"
+import NextSteps from "../commitment_components/NextSteps"
 
 const Commitments = () => {
   const [step, setStep] = useState(0)
@@ -54,6 +55,12 @@ const Commitments = () => {
         setUserState={setUserState}
       />
       <Signup stepVal={2} currentStep={step} onClick={nextStep} />
+      <NextSteps
+        stepVal={3}
+        currentStep={step}
+        onClick={nextStep}
+        userState={userState}
+      />
 
       <div className="text-center mt-4">
         <Button onClick={prevStep} variant="light" className="mr-4" size="lg">
