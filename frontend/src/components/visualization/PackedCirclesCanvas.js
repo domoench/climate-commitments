@@ -33,7 +33,7 @@ let vOld = null;
 // The current timer instance
 let t;
 
-const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
+const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
   // Current context
   const ctx = hidden ? hiddenContext : context;
 
@@ -200,7 +200,7 @@ const Viz = ({ data, dimensions }) => {
       dt = elapsedSinceAnimationStart - lastRenderedTime;
       lastRenderedTime = elapsedSinceAnimationStart;
       interpolateZoom(dt);
-      renderBubbleChartCanvas(rootNode, width, height, false);
+      renderPackedCirclesCanvas(rootNode, width, height, false);
 
       // TODO something smarter
       if (elapsedSinceAnimationStart > duration * 3) {
@@ -232,7 +232,7 @@ const Viz = ({ data, dimensions }) => {
 
     const clickZoomHandler = function() {
       // Render the hidden color mapped canvas for 'picking'
-      renderBubbleChartCanvas(rootNode, width, height, true);
+      renderPackedCirclesCanvas(rootNode, width, height, true);
 
       // Pick the node being clicked
       const [mouseX, mouseY] = mouse(this);
@@ -249,7 +249,7 @@ const Viz = ({ data, dimensions }) => {
     canvas.on('click', clickZoomHandler);
 
     // The first render (without animation)
-    renderBubbleChartCanvas(rootNode, width, height, false);
+    renderPackedCirclesCanvas(rootNode, width, height, false);
 
     // Cleanup function
     return () => {

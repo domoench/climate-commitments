@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 import Layout from '../components/layout';
-import BubbleChartCanvas from '../components/visualization/BubbleChartCanvas';
+import PackedCirclesCanvas from '../components/visualization/PackedCirclesCanvas';
 import { generateData, createDataHierarchy } from '../components/visualization/helpers';
 import { HIERARCHY_KEYS, HierarchyControls } from '../components/visualization/HierarchyControls';
 
@@ -64,7 +64,7 @@ export default () => {
         shiftKeyUp={shiftKeyUp}
         shiftKeyDown={shiftKeyDown}
       />
-      <BubbleChartCanvas data={dataHierarchy} />
+      <PackedCirclesCanvas data={dataHierarchy} />
     </Layout>
   );
 };
