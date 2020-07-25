@@ -29,7 +29,7 @@ let centerY = 0;
 let currentTransform = {}; // Current X,Y transform and scale
 
 // Animation-related
-let duration = 2000; // ms
+let interpolationDuration = 2000; // ms
 let t; // The current timer instance
 // let dt = 0;
 let lastRenderedTime = 0;
@@ -88,7 +88,7 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
   rootNode.each((node) => {
     // Only render after the animation is complete and if node is at or 1 lower than focus level.
     // TODO: Only render labels for descendents of the focused node
-    const animationComplete = interpolator === null;
+    const animationComplete = interpolationTimeElapsed >= interpolationDuration;
     const nodeIsLeafAndFocused = focusNode.height === 0 && node.height === 0;
     const nodeDeeperThanFocus = focusNode.depth + 1 === node.depth;
     const renderLabels = animationComplete && (nodeIsLeafAndFocused || nodeDeeperThanFocus);
@@ -102,31 +102,28 @@ const zoomToCanvas = newFocusNode => {
   if (newFocusNode === focusNode) return; // Noop
 
   focusNode = newFocusNode;
-  const v = [focusNode.x, focusNode.y, focusNode.r * 2.05]; // New viewport
+  const viewNew = [focusNode.x, focusNode.y, focusNode.r * 2.05];
 
-  // Create interpolation between current and new viewport
-  // interpolator = null; // TODO try destroying here
-  interpolationTimeElapsed = 0;
-  interpolator = d3InterpolateZoom(viewOld, v);
-  duration = interpolator.duration;
+  // Create interpolation between current and new view
+  interpolationTimeElapsed = 0; // TODO mutates global
+  interpolator = d3InterpolateZoom(viewOld, viewNew);
+  interpolationDuration = interpolator.duration;
 
-  viewOld = v;
+  viewOld = viewNew;
 };
 
-const interpolateZoom = dt => {
+// Returns a new transform, interpolated over dt
+const interpolateTransform = (dt, interpolator) => {
   if (interpolator) {
-    interpolationTimeElapsed += dt;
-    let normalizedDt = interpolationTimeElapsed / duration;
+    interpolationTimeElapsed += dt; // TODO mutates global
+    let normalizedDt = interpolationTimeElapsed / interpolationDuration;
     var easedT = easeCubic(normalizedDt);
 
-    const interpolated = interpolator(easedT);
-    currentTransform.x = interpolated[0];
-    currentTransform.y = interpolated[1];
-    currentTransform.scale = diameter / interpolated[2];
-
-    // Once zoom is done, destroy this interpolator
-    if (interpolationTimeElapsed >= duration) {
-      interpolator = null;
+    const interpolatedView = interpolator(easedT);
+    return {
+      x: interpolatedView[0],
+      y: interpolatedView[1],
+      scale: diameter / interpolatedView[2],
     }
   }
 };
@@ -193,11 +190,15 @@ const Viz = ({ data, dimensions }) => {
     const t = timer(elapsedSinceAnimationStart => {
       const dt = elapsedSinceAnimationStart - lastRenderedTime;
       lastRenderedTime = elapsedSinceAnimationStart;
-      interpolateZoom(dt);
+
+      if (interpolationTimeElapsed <= interpolationDuration) {
+        currentTransform = interpolateTransform(dt, interpolator);
+      }
+
       renderPackedCirclesCanvas(rootNode, width, height, false);
 
       // TODO something smarter
-      if (elapsedSinceAnimationStart > duration * 3) {
+      if (elapsedSinceAnimationStart > interpolationDuration * 3) {
         t.stop();
       }
     });
