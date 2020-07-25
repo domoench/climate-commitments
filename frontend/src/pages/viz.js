@@ -105,18 +105,6 @@ export default () => {
     }
   }
 
-  // const keys = ['country', 'postalCode', 'commitmentType'];
-  // const keys = ['commitmentType', 'country'];
-  /*
-  const remainingKeys = HIERARCHY_KEYS.filter(key => keys.indexOf(key) === -1)
-
-  const addKey = (key) => {
-    if (HIERARCHY_KEYS.indexOf(key) !== -1) {
-      setKeys([...keys, key]);
-    }
-  }
-  */
-
   const data = generateData(5000);
   const activeKeys = keys.filter(k => k.active).map(k => k.key);
   const dataHierarchy = createDataHierarchy(activeKeys, data);

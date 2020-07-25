@@ -33,11 +33,9 @@ let vOld = null;
 // The current timer instance
 let t;
 
-
 const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
   // Current context
   const ctx = hidden ? hiddenContext : context;
-  // hidden = true; // TODO
 
   // Clear canvas
   ctx.clearRect(0, 0, width, height);
@@ -47,15 +45,14 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
     if (node.depth === 0) { return; }
 
     if (hidden) {
+      // Attempt to reduce anti-aliasing color picking issue.
+      ctx.isSmoothingEnabled = false;
+
       if (!node.pickColor) {
         node.pickColor = genColor();
         colToCircle[node.pickColor] = node;
       }
       ctx.fillStyle = node.pickColor;
-
-      // TODO Attempt to fix anti-aliasing color picking bug.
-      // This doesn't fix it fully, not sure whether this helps a little or not
-      ctx.isSmoothingEnabled = false;
     } else {
       const isLeaf = node.height === 0;
       const colorKey = isLeaf ? node.data.commitmentType : node.depth;
@@ -67,8 +64,14 @@ const renderBubbleChartCanvas = (rootNode, width, height, hidden) => {
     const nodeY = (node.y - zoomInfo.centerY) * zoomInfo.scale + centerY;
     const nodeR = node.r * zoomInfo.scale;
 
-    const nodeWayDeeperThanFocus = node.depth - focus.depth >= 4;
-    if (!nodeWayDeeperThanFocus) {
+    // If not hidden canvas, always render. If it is the hidden canvas, only
+    // render nodes one level down from focus and higher. This helps with
+    // anti-aliasing color-picking issue because if we pick a deep leaf node from
+    // a high level (e.g. root) focus, the small leaf nodes are anti-aliased so the
+    // pixel chosen is often a blended color rather than the pickColor. If we only
+    // allow picking and zooming to 1 level below focus we avoid that problem.
+    const nodeNotTooDeep = node.depth - focus.depth <= 1;
+    if (!hidden || nodeNotTooDeep) {
       ctx.beginPath();
       ctx.arc(nodeX, nodeY, nodeR, 0, 2 * Math.PI, true);
       ctx.fill();
@@ -236,11 +239,6 @@ const Viz = ({ data, dimensions }) => {
       const pixelCol = hiddenContext.getImageData(mouseX, mouseY, 1, 1).data;
       const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;
       const node = colToCircle[colString];
-
-      // TODO picking bug: When zoomed way out and attempting to click on an individual node,
-      // anti-aliasing of the small individual nodes creates pixels that are slightly off from
-      // the intended pick color - leading to non-existant node lookups, or sometimes existing but
-      // wrong node picks.
 
       // Zoom to it
       const newFocus = (node && focus !== node) ? node : rootNode;
