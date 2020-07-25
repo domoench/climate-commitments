@@ -7,9 +7,9 @@ import { schemePaired } from 'd3-scale-chromatic';
 import { timer } from 'd3-timer';
 import _debounce from 'lodash.debounce';
 import { interpolateZoom as d3InterpolateZoom } from 'd3-interpolate';
-import { genColor } from './helpers';
+import { genColor } from './helpers/color';
+import { renderCircle, renderCenteredLabel } from './helpers/graphics';
 
-const baseFontSize = 200;
 
 const colorCircle = scaleOrdinal(schemePaired);
 
@@ -23,7 +23,7 @@ let dt = 0;
 let interpolator = null;
 let interpolationTimeElapsed = 0;
 let duration = 2000; // ms
-let zoomInfo = {};
+let currentTransform = {}; // Current X,Y transform and scale
 let diameter = 0;
 let centerX = 0;
 let centerY = 0;
@@ -34,8 +34,16 @@ let vOld = null;
 let t;
 
 const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
-  // Current context
+  // Current canvas context
   const ctx = hidden ? hiddenContext : context;
+  const renderSettings = {
+    ctx,
+    currentTransform,
+    centerX,
+    centerY,
+    diameter,
+    baseFontSize: 200,
+  }
 
   // Clear canvas
   ctx.clearRect(0, 0, width, height);
@@ -59,11 +67,6 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
       ctx.fillStyle = colorCircle(colorKey);
     }
 
-    // Scale and translate positions
-    const nodeX = (node.x - zoomInfo.centerX) * zoomInfo.scale + centerX;
-    const nodeY = (node.y - zoomInfo.centerY) * zoomInfo.scale + centerY;
-    const nodeR = node.r * zoomInfo.scale;
-
     // If not hidden canvas, always render. If it is the hidden canvas, only
     // render nodes one level down from focus and higher. This helps with
     // anti-aliasing color-picking issue because if we pick a deep leaf node from
@@ -72,10 +75,7 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
     // allow picking and zooming to 1 level below focus we avoid that problem.
     const nodeNotTooDeep = node.depth - focus.depth <= 1;
     if (!hidden || nodeNotTooDeep) {
-      ctx.beginPath();
-      ctx.arc(nodeX, nodeY, nodeR, 0, 2 * Math.PI, true);
-      ctx.fill();
-      ctx.closePath();
+      renderCircle(node, renderSettings);
     }
   });
 
@@ -83,12 +83,6 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
   // TODO If this gets too inefficient, you could queue up the required label renders during the
   // first loop then simply execute here.
   rootNode.each((node) => {
-    // Scale and translate positions
-    const nodeX = (node.x - zoomInfo.centerX) * zoomInfo.scale + centerX;
-    const nodeY = (node.y - zoomInfo.centerY) * zoomInfo.scale + centerY;
-    const nodeR = node.r * zoomInfo.scale;
-
-    // Commitment Labels.
     // Only render after the animation is complete and if node is at or 1 lower than focus level.
     // TODO: Only render labels for descendents of the focused node
     const animationComplete = interpolator === null;
@@ -96,12 +90,7 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
     const nodeDeeperThanFocus = focus.depth + 1 === node.depth;
     const renderLabels = animationComplete && (nodeIsLeafAndFocused || nodeDeeperThanFocus);
     if (!hidden && renderLabels) {
-      const sizeRatio = nodeR / diameter;
-      const fontSize = Math.floor(baseFontSize * sizeRatio);
-      ctx.font = `${fontSize}px Arial`;
-      ctx.fillStyle = "black";
-      ctx.textAlign = "center";
-      ctx.fillText(node.data.name, nodeX, nodeY);
+      renderCenteredLabel(node, renderSettings);
     }
   });
 }
@@ -128,9 +117,9 @@ const interpolateZoom = dt => {
     var easedT = easeCubic(normalizedDt);
 
     const interpolated = interpolator(easedT);
-    zoomInfo.centerX = interpolated[0];
-    zoomInfo.centerY = interpolated[1];
-    zoomInfo.scale = diameter / interpolated[2];
+    currentTransform.x = interpolated[0];
+    currentTransform.y = interpolated[1];
+    currentTransform.scale = diameter / interpolated[2];
 
     // Once zoom is done, destroy this interpolator
     if (interpolationTimeElapsed >= duration) {
@@ -172,8 +161,10 @@ const Viz = ({ data, dimensions }) => {
 
   const domId = 'bubble-chart';
 
+  // Center the canvas' 0,0 coordinate
   centerX = width / 2;
   centerY = height / 2;
+
   diameter = Math.min(width*0.9, height*0.9);
   const pack = data => d3Pack()
     .size([diameter, diameter])
@@ -186,9 +177,9 @@ const Viz = ({ data, dimensions }) => {
   focus = rootNode;
   vOld = [focus.x, focus.y, focus.r * 2.05];
 
-  zoomInfo = {
-    centerX: width / 2,
-    centerY: height / 2,
+  currentTransform = {
+    x: width / 2,
+    y: height / 2,
     scale: 1
   };
 
@@ -217,12 +208,15 @@ const Viz = ({ data, dimensions }) => {
   }
 
   useEffect(() => {
+    // The visible canvas
     const canvas = select(`#${domId}`).select('#canvas')
       .attr('width', width)
       .attr('height', height);
     context = canvas.node().getContext('2d');
     context.clearRect(0, 0, width, height);
 
+    // The hidden canvas is... hidden. It hides underneath the visible canvas
+    // with ugly but distinct colors that enable UI interaction via color-picking.
     const hiddenCanvas = select(`#${domId}`).select('#hiddenCanvas')
       .attr('width', width)
       .attr('height', height)
@@ -230,11 +224,12 @@ const Viz = ({ data, dimensions }) => {
     hiddenContext = hiddenCanvas.node().getContext('2d');
     hiddenContext.clearRect(0, 0, width, height);
 
+    // Set up zoom on mouse clicks
     const clickZoomHandler = function() {
-      // Render the hidden color mapped canvas for 'picking'
+      // Render the hidden color mapped canvas for picking
       renderPackedCirclesCanvas(rootNode, width, height, true);
 
-      // Pick the node being clicked
+      // Pick the node being clicked: Map the color of the pixel clicked to the node object
       const [mouseX, mouseY] = mouse(this);
       const pixelCol = hiddenContext.getImageData(mouseX, mouseY, 1, 1).data;
       const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;

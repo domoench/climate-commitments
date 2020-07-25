@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import Layout from '../components/layout';
 import PackedCirclesCanvas from '../components/visualization/PackedCirclesCanvas';
-import { generateData, createDataHierarchy } from '../components/visualization/helpers';
+import { generateData, createDataHierarchy } from '../components/visualization/helpers/data';
 import { HIERARCHY_KEYS, HierarchyControls } from '../components/visualization/HierarchyControls';
 
 // TODO
