@@ -1,3 +1,6 @@
+import { scaleOrdinal } from 'd3-scale';
+import { schemePaired } from 'd3-scale-chromatic';
+
 // Generates the next color in the sequence, going from 0,0,0 to 255,255,255.
 // From: https://bocoup.com/weblog/2d-picking-in-canvas
 let nextGenCol = 1;
@@ -12,3 +15,4 @@ export const genColor = () => {
   return "rgb(" + ret.join(',') + ")";
 };
 
+export const colorCircle = scaleOrdinal(schemePaired);

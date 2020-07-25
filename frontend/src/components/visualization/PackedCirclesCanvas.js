@@ -2,40 +2,43 @@ import React, { useEffect, useState, useRef } from 'react';
 import { easeCubic } from 'd3-ease';
 import { select, mouse } from 'd3-selection';
 import { pack as d3Pack, hierarchy } from 'd3-hierarchy';
-import { scaleOrdinal } from 'd3-scale';
-import { schemePaired } from 'd3-scale-chromatic';
 import { timer } from 'd3-timer';
 import _debounce from 'lodash.debounce';
 import { interpolateZoom as d3InterpolateZoom } from 'd3-interpolate';
-import { genColor } from './helpers/color';
+import { colorCircle, genColor } from './helpers/color';
 import { renderCircle, renderCenteredLabel } from './helpers/graphics';
 
-
-const colorCircle = scaleOrdinal(schemePaired);
-
-// D3 Viz vars
-// TODO so many file globals, can we cleanup to make the functions easier to understand?
-let context = null;
-let hiddenContext = null;
+// CONSTANTS
 const colToCircle = {};
-let lastRenderedTime = 0;
-let dt = 0;
-let interpolator = null;
-let interpolationTimeElapsed = 0;
-let duration = 2000; // ms
-let currentTransform = {}; // Current X,Y transform and scale
+
+// GLOBAL VARIABLES
+// State that we don't want to store in react 'state' because it's animation
+// related, and we don't want to re-render the react component when it changes
+// TODO so many file globals, cleanup to make the functions easier to understand
+
+// d3 hierarchy, node-level related
+let focusNode = null;
+let viewOld = null;
+
+// Canvas- and Transform-related
+let canvasContext = null;
+let hiddenCanvasContext = null;
 let diameter = 0;
 let centerX = 0;
 let centerY = 0;
-let focus = null;
-let vOld = null;
+let currentTransform = {}; // Current X,Y transform and scale
 
-// The current timer instance
-let t;
+// Animation-related
+let duration = 2000; // ms
+let t; // The current timer instance
+// let dt = 0;
+let lastRenderedTime = 0;
+let interpolator = null;
+let interpolationTimeElapsed = 0;
 
 const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
   // Current canvas context
-  const ctx = hidden ? hiddenContext : context;
+  const ctx = hidden ? hiddenCanvasContext : canvasContext;
   const renderSettings = {
     ctx,
     currentTransform,
@@ -73,7 +76,7 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
     // a high level (e.g. root) focus, the small leaf nodes are anti-aliased so the
     // pixel chosen is often a blended color rather than the pickColor. If we only
     // allow picking and zooming to 1 level below focus we avoid that problem.
-    const nodeNotTooDeep = node.depth - focus.depth <= 1;
+    const nodeNotTooDeep = node.depth - focusNode.depth <= 1;
     if (!hidden || nodeNotTooDeep) {
       renderCircle(node, renderSettings);
     }
@@ -86,8 +89,8 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
     // Only render after the animation is complete and if node is at or 1 lower than focus level.
     // TODO: Only render labels for descendents of the focused node
     const animationComplete = interpolator === null;
-    const nodeIsLeafAndFocused = focus.height === 0 && node.height === 0;
-    const nodeDeeperThanFocus = focus.depth + 1 === node.depth;
+    const nodeIsLeafAndFocused = focusNode.height === 0 && node.height === 0;
+    const nodeDeeperThanFocus = focusNode.depth + 1 === node.depth;
     const renderLabels = animationComplete && (nodeIsLeafAndFocused || nodeDeeperThanFocus);
     if (!hidden && renderLabels) {
       renderCenteredLabel(node, renderSettings);
@@ -95,19 +98,19 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
   });
 }
 
-const zoomToCanvas = focusNode => {
-  if (focusNode === focus) return; // Noop
+const zoomToCanvas = newFocusNode => {
+  if (newFocusNode === focusNode) return; // Noop
 
-  focus = focusNode;
-  const v = [focus.x, focus.y, focus.r * 2.05]; // New viewport
+  focusNode = newFocusNode;
+  const v = [focusNode.x, focusNode.y, focusNode.r * 2.05]; // New viewport
 
   // Create interpolation between current and new viewport
   // interpolator = null; // TODO try destroying here
   interpolationTimeElapsed = 0;
-  interpolator = d3InterpolateZoom(vOld, v);
+  interpolator = d3InterpolateZoom(viewOld, v);
   duration = interpolator.duration;
 
-  vOld = v;
+  viewOld = v;
 };
 
 const interpolateZoom = dt => {
@@ -174,8 +177,8 @@ const Viz = ({ data, dimensions }) => {
         .sort((a, b) => a.data.id - b.data.id)
     );
   const rootNode = pack(data);
-  focus = rootNode;
-  vOld = [focus.x, focus.y, focus.r * 2.05];
+  focusNode = rootNode;
+  viewOld = [focusNode.x, focusNode.y, focusNode.r * 2.05];
 
   currentTransform = {
     x: width / 2,
@@ -188,7 +191,7 @@ const Viz = ({ data, dimensions }) => {
     lastRenderedTime = 0;
 
     const t = timer(elapsedSinceAnimationStart => {
-      dt = elapsedSinceAnimationStart - lastRenderedTime;
+      const dt = elapsedSinceAnimationStart - lastRenderedTime;
       lastRenderedTime = elapsedSinceAnimationStart;
       interpolateZoom(dt);
       renderPackedCirclesCanvas(rootNode, width, height, false);
@@ -212,8 +215,8 @@ const Viz = ({ data, dimensions }) => {
     const canvas = select(`#${domId}`).select('#canvas')
       .attr('width', width)
       .attr('height', height);
-    context = canvas.node().getContext('2d');
-    context.clearRect(0, 0, width, height);
+    canvasContext = canvas.node().getContext('2d');
+    canvasContext.clearRect(0, 0, width, height);
 
     // The hidden canvas is... hidden. It hides underneath the visible canvas
     // with ugly but distinct colors that enable UI interaction via color-picking.
@@ -221,8 +224,8 @@ const Viz = ({ data, dimensions }) => {
       .attr('width', width)
       .attr('height', height)
       .attr('style', 'display: none');
-    hiddenContext = hiddenCanvas.node().getContext('2d');
-    hiddenContext.clearRect(0, 0, width, height);
+    hiddenCanvasContext = hiddenCanvas.node().getContext('2d');
+    hiddenCanvasContext.clearRect(0, 0, width, height);
 
     // Set up zoom on mouse clicks
     const clickZoomHandler = function() {
@@ -231,12 +234,12 @@ const Viz = ({ data, dimensions }) => {
 
       // Pick the node being clicked: Map the color of the pixel clicked to the node object
       const [mouseX, mouseY] = mouse(this);
-      const pixelCol = hiddenContext.getImageData(mouseX, mouseY, 1, 1).data;
+      const pixelCol = hiddenCanvasContext.getImageData(mouseX, mouseY, 1, 1).data;
       const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;
       const node = colToCircle[colString];
 
       // Zoom to it
-      const newFocus = (node && focus !== node) ? node : rootNode;
+      const newFocus = (node && focusNode !== node) ? node : rootNode;
       stopAnimation(t);
       zoomToCanvas(newFocus);
       t = startAnimation(); // TODO consequence of repeatedly overwriting this? Old timers get GC'd?
