@@ -29,14 +29,12 @@ let centerY = 0;
 let currentTransform = {}; // Current X,Y transform and scale
 
 // Animation-related
-let interpolationDuration = 2000; // ms
+let interpolationDuration = 0; // ms
 let t; // The current timer instance
 // let dt = 0;
-let lastRenderedTime = 0;
 let interpolator = null;
-let interpolationTimeElapsed = 0;
 
-const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
+const renderPackedCirclesCanvas = (rootNode, width, height, hidden, timeElapsed) => {
   // Current canvas context
   const ctx = hidden ? hiddenCanvasContext : canvasContext;
   const renderSettings = {
@@ -88,7 +86,7 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden) => {
   rootNode.each((node) => {
     // Only render after the animation is complete and if node is at or 1 lower than focus level.
     // TODO: Only render labels for descendents of the focused node
-    const animationComplete = interpolationTimeElapsed >= interpolationDuration;
+    const animationComplete = timeElapsed >= interpolationDuration;
     const nodeIsLeafAndFocused = focusNode.height === 0 && node.height === 0;
     const nodeDeeperThanFocus = focusNode.depth + 1 === node.depth;
     const renderLabels = animationComplete && (nodeIsLeafAndFocused || nodeDeeperThanFocus);
@@ -105,7 +103,6 @@ const zoomToCanvas = newFocusNode => {
   const viewNew = [focusNode.x, focusNode.y, focusNode.r * 2.05];
 
   // Create interpolation between current and new view
-  interpolationTimeElapsed = 0; // TODO mutates global
   interpolator = d3InterpolateZoom(viewOld, viewNew);
   interpolationDuration = interpolator.duration;
 
@@ -113,10 +110,9 @@ const zoomToCanvas = newFocusNode => {
 };
 
 // Returns a new transform, interpolated over dt
-const interpolateTransform = (dt, interpolator) => {
+const interpolateTransform = (timeElapsed, interpolator) => {
   if (interpolator) {
-    interpolationTimeElapsed += dt; // TODO mutates global
-    let normalizedDt = interpolationTimeElapsed / interpolationDuration;
+    let normalizedDt = timeElapsed / interpolationDuration;
     var easedT = easeCubic(normalizedDt);
 
     const interpolatedView = interpolator(easedT);
@@ -184,21 +180,14 @@ const Viz = ({ data, dimensions }) => {
   };
 
   const startAnimation = () => {
-    // Reset animation state vars
-    lastRenderedTime = 0;
-
     const t = timer(elapsedSinceAnimationStart => {
-      const dt = elapsedSinceAnimationStart - lastRenderedTime;
-      lastRenderedTime = elapsedSinceAnimationStart;
-
-      if (interpolationTimeElapsed <= interpolationDuration) {
-        currentTransform = interpolateTransform(dt, interpolator);
+      if (elapsedSinceAnimationStart <= interpolationDuration) {
+        currentTransform = interpolateTransform(elapsedSinceAnimationStart, interpolator);
       }
 
-      renderPackedCirclesCanvas(rootNode, width, height, false);
+      renderPackedCirclesCanvas(rootNode, width, height, false, elapsedSinceAnimationStart);
 
-      // TODO something smarter
-      if (elapsedSinceAnimationStart > interpolationDuration * 3) {
+      if (elapsedSinceAnimationStart >= interpolationDuration * 1.05) {
         t.stop();
       }
     });
@@ -231,7 +220,7 @@ const Viz = ({ data, dimensions }) => {
     // Set up zoom on mouse clicks
     const clickZoomHandler = function() {
       // Render the hidden color mapped canvas for picking
-      renderPackedCirclesCanvas(rootNode, width, height, true);
+      renderPackedCirclesCanvas(rootNode, width, height, true, 0);
 
       // Pick the node being clicked: Map the color of the pixel clicked to the node object
       const [mouseX, mouseY] = mouse(this);
@@ -248,7 +237,7 @@ const Viz = ({ data, dimensions }) => {
     canvas.on('click', clickZoomHandler);
 
     // The first render (without animation)
-    renderPackedCirclesCanvas(rootNode, width, height, false);
+    renderPackedCirclesCanvas(rootNode, width, height, false, 0);
 
     // Cleanup function
     return () => {
