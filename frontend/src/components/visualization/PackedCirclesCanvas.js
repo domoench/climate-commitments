@@ -9,32 +9,152 @@ import { colorCircle, genColor } from './helpers/color';
 import { renderCircle, renderCenteredLabel } from './helpers/graphics';
 
 // CONSTANTS
+const EMPTY_WIDTH = 1;
 const colToCircle = {};
 
-// GLOBAL VARIABLES
-// State that we don't want to store in react 'state' because it's animation
-// related, and we don't want to re-render the react component when it changes
-// TODO so many file globals, cleanup to make the functions easier to understand
+// Viz wrapper: Manages dynamically resizing the visualization.
+export default ({ data }) => {
+  const ref = useRef(null);
+  const [dimensions, setDimensions] = useState(null);
 
-// d3 hierarchy, node-level related
-let focusNode = null;
-let viewOld = null;
+  // Measure the browser-rendered dimensions of a DOM element
+  const setVizDimensions = () => {
+    const { width, height } = ref.current.getBoundingClientRect();
+    setDimensions({ width, height });
+  };
 
-// Canvas- and Transform-related
-let canvasContext = null;
-let hiddenCanvasContext = null;
-let diameter = 0;
-let centerX = 0;
-let centerY = 0;
-let currentTransform = {}; // Current X,Y transform and scale
+  useEffect(() => {
+    setVizDimensions();
+    const debouncedSetDimensions = _debounce(() => setVizDimensions(), 250);
+    window.addEventListener('resize', debouncedSetDimensions);
+    return () => {
+      window.removeEventListener('resize', debouncedSetDimensions);
+    };
+  }, [ref]);
 
-// Animation-related
-let interpolationDuration = 0; // ms
-let t; // The current timer instance
-// let dt = 0;
-let interpolator = null;
+  return (
+    <div ref={ref}>
+      {dimensions &&
+        <Viz data={data} dimensions={dimensions} />
+      }
+    </div>
+  ) ;
+};
 
-const renderPackedCirclesCanvas = (rootNode, width, height, hidden, timeElapsed) => {
+const Viz = ({ data, dimensions }) => {
+  const { width } = dimensions ? dimensions : { width: EMPTY_WIDTH };
+  const height = width;
+  const diameter = Math.min(width*0.9, height*0.9);
+
+  const domId = 'bubble-chart';
+
+  const pack = data => d3Pack()
+    .size([diameter, diameter])
+    .padding(1)(
+      hierarchy(data)
+        .sum(d => 1)
+        .sort((a, b) => a.data.id - b.data.id)
+    );
+  const rootNode = pack(data);
+
+  // State that we don't want to store in react 'state' because it's d3/animation
+  // related, and we don't want to re-render the react component when it changes
+  // TODO: This is slightly better than global vars, but is still pretty hard to reason about
+  const renderState = {
+    // Canvas- and Transform-related
+    canvasContext: null,
+    hiddenCanvasContext: null,
+    currentTransform: {}, // Current X,Y transform and scale
+
+    // Center the canvas' 0,0 coordinate
+    width,
+    height,
+    diameter,
+    centerX: width / 2,
+    centerY: height / 2,
+
+    // d3 hierarchy, node-level related
+    rootNode,
+    focusNode: rootNode,
+    viewOld: [rootNode.x, rootNode.y, rootNode.r * 2.05],
+
+    // Animation-related
+    interpolationDuration: 2000, // ms
+    t: null, // The current timer instance
+    interpolator: null,
+  };
+
+  renderState.currentTransform = {
+    x: width / 2,
+    y: height / 2,
+    scale: 1
+  };
+
+  useEffect(() => {
+    // The visible canvas
+    const canvas = select(`#${domId}`).select('#canvas')
+      .attr('width', width)
+      .attr('height', height);
+    renderState.canvasContext = canvas.node().getContext('2d');
+    renderState.canvasContext.clearRect(0, 0, width, height);
+
+    // The hidden canvas is... hidden. It hides underneath the visible canvas
+    // with ugly but distinct colors that enable UI interaction via color-picking.
+    const hiddenCanvas = select(`#${domId}`).select('#hiddenCanvas')
+      .attr('width', width)
+      .attr('height', height)
+      .attr('style', 'display: none');
+    renderState.hiddenCanvasContext = hiddenCanvas.node().getContext('2d');
+    renderState.hiddenCanvasContext.clearRect(0, 0, width, height);
+
+    // Set up zoom on mouse clicks
+    const clickZoomHandler = function() {
+      // Render the hidden color mapped canvas for picking
+      renderPackedCirclesCanvas(rootNode, true, 0, renderState);
+
+      // Pick the node being clicked: Map the color of the pixel clicked to the node object
+      const [mouseX, mouseY] = mouse(this);
+      const pixelCol = renderState.hiddenCanvasContext.getImageData(mouseX, mouseY, 1, 1).data;
+      const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;
+      const node = colToCircle[colString];
+
+      // Zoom to it
+      const newFocus = (node && renderState.focusNode !== node) ? node : rootNode;
+      stopAnimation(renderState.t);
+      zoomToCanvas(newFocus, renderState);
+      renderState.t = startAnimation(renderState); // TODO consequence of repeatedly overwriting this? Old timers get GC'd?
+    }
+    canvas.on('click', clickZoomHandler);
+
+    // The first render (without animation)
+    renderPackedCirclesCanvas(rootNode, false, 0, renderState);
+
+    // Cleanup function
+    return () => {
+      stopAnimation(t);
+
+      // Remove event handlers
+      canvas.on('click', null);
+    }
+  });
+
+  return (
+    <>
+      <div id={domId}>
+        <canvas id="canvas"></canvas>
+        <canvas id="hiddenCanvas"></canvas>
+      </div>
+    </>
+  );
+};
+
+const renderPackedCirclesCanvas = (rootNode, hidden, timeElapsed, renderState) => { // TODO clean out rendundant args if renderState works
+  const { width, height, focusNode, interpolationDuration } = renderState;
+  if (width === EMPTY_WIDTH) {
+    return
+  }
+
+  const { hiddenCanvasContext, canvasContext, centerX, centerY, currentTransform, diameter } = renderState;
   // Current canvas context
   const ctx = hidden ? hiddenCanvasContext : canvasContext;
   const renderSettings = {
@@ -96,21 +216,26 @@ const renderPackedCirclesCanvas = (rootNode, width, height, hidden, timeElapsed)
   });
 }
 
-const zoomToCanvas = newFocusNode => {
-  if (newFocusNode === focusNode) return; // Noop
+const zoomToCanvas = (newFocusNode, renderState) => {
+  if (newFocusNode === renderState.focusNode) return; // Noop
 
-  focusNode = newFocusNode;
-  const viewNew = [focusNode.x, focusNode.y, focusNode.r * 2.05];
+  renderState.focusNode = newFocusNode;
+  const viewNew = [
+    renderState.focusNode.x,
+    renderState.focusNode.y,
+    renderState.focusNode.r * 2.05
+  ];
 
   // Create interpolation between current and new view
-  interpolator = d3InterpolateZoom(viewOld, viewNew);
-  interpolationDuration = interpolator.duration;
+  renderState.interpolator = d3InterpolateZoom(renderState.viewOld, viewNew);
+  renderState.interpolationDuration = renderState.interpolator.duration;
 
-  viewOld = viewNew;
+  renderState.viewOld = viewNew;
 };
 
 // Returns a new transform, interpolated over dt
-const interpolateTransform = (timeElapsed, interpolator) => {
+const interpolateTransform = (timeElapsed, renderState) => {
+  const { interpolator, diameter, interpolationDuration } = renderState;
   if (interpolator) {
     let normalizedDt = timeElapsed / interpolationDuration;
     var easedT = easeCubic(normalizedDt);
@@ -124,136 +249,24 @@ const interpolateTransform = (timeElapsed, interpolator) => {
   }
 };
 
-// Viz wrapper: Manages dynamically resizing the visualization.
-export default ({ data }) => {
-  const ref = useRef(null);
-  const [dimensions, setDimensions] = useState(null);
+const startAnimation = (renderState) => {
+  const { interpolationDuration, rootNode } = renderState;
+  const t = timer(elapsedSinceAnimationStart => {
+    if (elapsedSinceAnimationStart <= interpolationDuration) {
+      renderState.currentTransform = interpolateTransform(elapsedSinceAnimationStart, renderState);
+    }
 
-  // Measure the browser-rendered dimensions of a DOM element
-  const setVizDimensions = () => {
-    const { width, height } = ref.current.getBoundingClientRect();
-    setDimensions({ width, height });
-  };
+    renderPackedCirclesCanvas(rootNode, false, elapsedSinceAnimationStart, renderState);
 
-  useEffect(() => {
-    setVizDimensions();
-    const debouncedSetDimensions = _debounce(() => setVizDimensions(), 250);
-    window.addEventListener('resize', debouncedSetDimensions);
-    return () => {
-      window.removeEventListener('resize', debouncedSetDimensions);
-    };
-  }, [ref]);
-
-  return (
-    <div ref={ref}>
-      <Viz data={data} dimensions={dimensions} />
-    </div>
-  );
-};
-
-const Viz = ({ data, dimensions }) => {
-  const { width } = dimensions ? dimensions : { width: 1, height: 1};
-  const height = width;
-
-  const domId = 'bubble-chart';
-
-  // Center the canvas' 0,0 coordinate
-  centerX = width / 2;
-  centerY = height / 2;
-
-  diameter = Math.min(width*0.9, height*0.9);
-  const pack = data => d3Pack()
-    .size([diameter, diameter])
-    .padding(1)(
-      hierarchy(data)
-        .sum(d => 1)
-        .sort((a, b) => a.data.id - b.data.id)
-    );
-  const rootNode = pack(data);
-  focusNode = rootNode;
-  viewOld = [focusNode.x, focusNode.y, focusNode.r * 2.05];
-
-  currentTransform = {
-    x: width / 2,
-    y: height / 2,
-    scale: 1
-  };
-
-  const startAnimation = () => {
-    const t = timer(elapsedSinceAnimationStart => {
-      if (elapsedSinceAnimationStart <= interpolationDuration) {
-        currentTransform = interpolateTransform(elapsedSinceAnimationStart, interpolator);
-      }
-
-      renderPackedCirclesCanvas(rootNode, width, height, false, elapsedSinceAnimationStart);
-
-      if (elapsedSinceAnimationStart >= interpolationDuration * 1.05) {
-        t.stop();
-      }
-    });
-    return t;
-  }
-
-  const stopAnimation = (t) => {
-    if (t) {
+    if (elapsedSinceAnimationStart >= interpolationDuration * 1.05) {
       t.stop();
     }
-  }
-
-  useEffect(() => {
-    // The visible canvas
-    const canvas = select(`#${domId}`).select('#canvas')
-      .attr('width', width)
-      .attr('height', height);
-    canvasContext = canvas.node().getContext('2d');
-    canvasContext.clearRect(0, 0, width, height);
-
-    // The hidden canvas is... hidden. It hides underneath the visible canvas
-    // with ugly but distinct colors that enable UI interaction via color-picking.
-    const hiddenCanvas = select(`#${domId}`).select('#hiddenCanvas')
-      .attr('width', width)
-      .attr('height', height)
-      .attr('style', 'display: none');
-    hiddenCanvasContext = hiddenCanvas.node().getContext('2d');
-    hiddenCanvasContext.clearRect(0, 0, width, height);
-
-    // Set up zoom on mouse clicks
-    const clickZoomHandler = function() {
-      // Render the hidden color mapped canvas for picking
-      renderPackedCirclesCanvas(rootNode, width, height, true, 0);
-
-      // Pick the node being clicked: Map the color of the pixel clicked to the node object
-      const [mouseX, mouseY] = mouse(this);
-      const pixelCol = hiddenCanvasContext.getImageData(mouseX, mouseY, 1, 1).data;
-      const colString = `rgb(${pixelCol[0]},${pixelCol[1]},${pixelCol[2]})`;
-      const node = colToCircle[colString];
-
-      // Zoom to it
-      const newFocus = (node && focusNode !== node) ? node : rootNode;
-      stopAnimation(t);
-      zoomToCanvas(newFocus);
-      t = startAnimation(); // TODO consequence of repeatedly overwriting this? Old timers get GC'd?
-    }
-    canvas.on('click', clickZoomHandler);
-
-    // The first render (without animation)
-    renderPackedCirclesCanvas(rootNode, width, height, false, 0);
-
-    // Cleanup function
-    return () => {
-      stopAnimation(t);
-
-      // Remove event handlers
-      canvas.on('click', null);
-    }
   });
+  return t;
+}
 
-  return (
-    <>
-      <div id={domId}>
-        <canvas id="canvas"></canvas>
-        <canvas id="hiddenCanvas"></canvas>
-      </div>
-    </>
-  );
-};
+const stopAnimation = (t) => {
+  if (t) {
+    t.stop();
+  }
+}
