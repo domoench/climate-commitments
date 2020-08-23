@@ -2,20 +2,20 @@ import React, { useState } from 'react';
 import withFirebase from '../components/withFirebase';
 
 const Display = ({ firebase }) => {
-  const [counts, setCounts] = useState({})
+  const [aggregateData, setAggregateData] = useState({})
 
   const handleClick = () => {
-    firebase.firestore().collection('aggregate').doc('countsByZip').get()
+    firebase.firestore().collection('aggregate').doc('all').get()
       .then((doc) => {
-        setCounts(doc.data())
+        setAggregateData(doc.data())
       })
       .catch(err => console.error(err));
   }
 
   return (
     <>
-      <h2>Aggregated commitment counts by zip</h2>
-      <div><pre>{JSON.stringify(counts, null, 2) }</pre></div>
+      <h2>Aggregated commitment data</h2>
+      <div><pre>{JSON.stringify(aggregateData, null, 2) }</pre></div>
       <button onClick={handleClick}>
         Refresh Counts
       </button>
