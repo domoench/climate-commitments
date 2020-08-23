@@ -5,7 +5,7 @@ const firebaseApp = admin.initializeApp(functions.config().firebase);
 const db = firebaseApp.firestore();
 
 // TODO
-// - validate input data fields. Perhaps https://hapi.dev/module/joi/#usage
+// - validate input data fields. Perhaps https://hapi.dev/module/joi/#usage, or typescript?
 //   - Validate the semantic fields: email, zip, etc
 exports.createCommitment = functions.https.onCall((data, context) => {
   let {
@@ -24,6 +24,7 @@ exports.createCommitment = functions.https.onCall((data, context) => {
 
   db.runTransaction(transaction => {
     // I. Update aggregate count document
+    // TODO: Replace aggregate count doc with full aggregate doc.
     const aggrPromise = transaction.get(countRef).then(doc => {
       const trueCommitmentKeys = Object.keys(commitments).filter(k => commitments[k]);
 
