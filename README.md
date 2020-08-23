@@ -16,8 +16,8 @@ starting point.
 
 ### Installation
 
-1. Install gatsby: `npm install -g gatsby-cli`
-1. Install Firebase tools: `npm install -g firebase-tools`
+1. Install gatsby: `yarn global add gatsby-cli`
+1. Install Firebase tools: `yarn global add firebase-tools`
 1. Clone this repo and cd inside.
 1. Install the cloud functions packages
     ```
@@ -49,7 +49,7 @@ firebase emulators:start
 
 # Run the local frontend server in another
 cd frontend/
-npm run develop
+yarn run develop
 ```
 
 ## Deploying
@@ -57,13 +57,13 @@ npm run develop
 To staging:
 ```sh
 cd frontend/
-npm run deploy-staging
+yarn run deploy-staging
 ```
 
 To production
 ```sh
 cd frontend/
-npm run deploy-production
+yarn run deploy-production
 ```
 
 Deploy only functions:
