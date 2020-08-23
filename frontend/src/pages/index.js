@@ -27,10 +27,7 @@ const IndexPage = () => (
         <Link to="/firebase-experiments/">Firebase Experiments</Link>
       </li>
       <li>
-        <Link to="/viz/">Hierarchical Data Visualization</Link>
-      </li>
-      <li>
-        <Link to="/viz-flat/">Flat Data Visualization</Link>
+        <Link to="/viz/">Data Visualization</Link>
       </li>
     </ul>
   </Layout>
