@@ -127,11 +127,11 @@ const Viz = ({ data, dimensions }) => {
     canvas.on('click', clickZoomHandler);
 
     // The first render (without animation)
-    renderPackedCirclesCanvas(rootNode, false, 0, renderState);
+    renderPackedCirclesCanvas(rootNode, false, renderState.interpolationDuration, renderState);
 
     // Cleanup function
     return () => {
-      stopAnimation(t);
+      stopAnimation(renderState.t);
 
       // Remove event handlers
       canvas.on('click', null);
@@ -148,7 +148,7 @@ const Viz = ({ data, dimensions }) => {
   );
 };
 
-const renderPackedCirclesCanvas = (rootNode, hidden, timeElapsed, renderState) => { // TODO clean out rendundant args if renderState works
+const renderPackedCirclesCanvas = (rootNode, hidden, timeElapsed, renderState) => {
   const { width, height, focusNode, interpolationDuration } = renderState;
   if (width === EMPTY_WIDTH) {
     return

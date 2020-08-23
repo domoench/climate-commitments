@@ -28,7 +28,7 @@ export default () => {
   const shiftKeyUp = (key) => {
     const keyIdx = keys.map(k => k.key).findIndex(k => k === key); // Assume it is never -1
     const prevIdx = keyIdx - 1;
-    if (keyIdx >= 0) {
+    if (prevIdx >= 0) {
       const newKeys = keys.map(k => k);
       const tmp = newKeys[keyIdx];
       newKeys[keyIdx] = newKeys[prevIdx];
@@ -37,11 +37,10 @@ export default () => {
     }
   }
 
-  // TODO when key is last on list and pressing down there is an error
   const shiftKeyDown = (key) => {
     const keyIdx = keys.map(k => k.key).findIndex(k => k === key); // Assume it is never -1
     const nextIdx = keyIdx + 1;
-    if (keyIdx < keys.length) {
+    if (nextIdx < keys.length) {
       const newKeys = keys.map(k => k);
       const tmp = newKeys[keyIdx];
       newKeys[keyIdx] = newKeys[nextIdx];
