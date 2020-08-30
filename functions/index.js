@@ -6,17 +6,16 @@ const db = firebaseApp.firestore();
 
 // TODO
 // - validate input data fields. Perhaps https://hapi.dev/module/joi/#usage, or typescript?
-//   - Validate the semantic fields: email, zip, etc
-// - Replace zip with post code
+//   - Validate the semantic fields: email, postalCode, etc
 exports.createCommitment = functions.https.onCall(async (data, context) => {
   let {
     commitments,
-    zip,
+    postalCode,
   } = data;
 
-  // Handle un-entered zip code. Empty string breaks firestore dot notation
+  // Handle un-entered postalCode code. Empty string breaks firestore dot notation
   // https://firebase.google.com/docs/firestore/manage-data/add-data#update_fields_in_nested_objects
-  zip = zip === '' ? 'none' : zip;
+  postalCode = postalCode === '' ? 'none' : postalCode;
 
   const commitmentId = data.email;
   const commitmentRef = db.collection('commitments').doc(commitmentId);
@@ -44,7 +43,7 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
       }
       const commitmentData = {
         ...data,
-        zip,
+        postalCode,
         createdAt: new Date(),
       };
       await transaction.set(commitmentRef, commitmentData);

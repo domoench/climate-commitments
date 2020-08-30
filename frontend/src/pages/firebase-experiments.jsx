@@ -17,7 +17,7 @@ const Display = ({ firebase }) => {
       <h2>Aggregated commitment data</h2>
       <div><pre>{JSON.stringify(aggregateData, null, 2) }</pre></div>
       <button onClick={handleClick}>
-        Refresh Counts
+        Refresh Data
       </button>
     </>
   );
@@ -25,7 +25,7 @@ const Display = ({ firebase }) => {
 
 const FirebaseExperimentsPage = ({ firebase }) => {
   // User info
-  const [zip, setZip] = useState('');
+  const [postalCode, setPostalCode] = useState('');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
 
@@ -42,7 +42,7 @@ const FirebaseExperimentsPage = ({ firebase }) => {
     const commitmentData = {
       name,
       email,
-      zip,
+      postalCode,
 
       // Commitments
       commitments: {
@@ -92,12 +92,12 @@ const FirebaseExperimentsPage = ({ firebase }) => {
 
         <label style={labelStyle}>
           <input
-            name="zip"
+            name="postalCode"
             type="text"
-            value={zip}
-            onChange={(e) => setZip(e.target.value)}
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value)}
           />
-          {` Zipcode`}
+          {` Postal Code`}
         </label>
 
         <label style={labelStyle}>
