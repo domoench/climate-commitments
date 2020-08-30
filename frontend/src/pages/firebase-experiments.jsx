@@ -2,32 +2,37 @@ import React, { useState } from 'react';
 import withFirebase from '../components/withFirebase';
 
 const Display = ({ firebase }) => {
-  const [aggregateData, setAggregateData] = useState({})
+  const [aggregateData, setAggregateData] = useState({});
 
   const handleClick = () => {
-    firebase.firestore().collection('aggregate').doc('all').get()
-      .then((doc) => {
-        setAggregateData(doc.data())
+    firebase
+      .firestore()
+      .collection('aggregate')
+      .doc('all')
+      .get()
+      .then(doc => {
+        setAggregateData(doc.data());
       })
       .catch(err => console.error(err));
-  }
+  };
 
   return (
     <>
       <h2>Aggregated commitment data</h2>
-      <div><pre>{JSON.stringify(aggregateData, null, 2) }</pre></div>
-      <button onClick={handleClick}>
-        Refresh Data
-      </button>
+      <div>
+        <pre>{JSON.stringify(aggregateData, null, 2)}</pre>
+      </div>
+      <button onClick={handleClick}>Refresh Data</button>
     </>
   );
-}
+};
 
 const FirebaseExperimentsPage = ({ firebase }) => {
   // User info
-  const [postalCode, setPostalCode] = useState('');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [country, setCountry] = useState('');
 
   // User commitments
   const [callBank, setCallBank] = useState(false);
@@ -36,13 +41,14 @@ const FirebaseExperimentsPage = ({ firebase }) => {
   const [participate, setParticipate] = useState(false);
   const [divestment, setDivestment] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = event => {
     event.preventDefault();
 
     const commitmentData = {
       name,
       email,
       postalCode,
+      country,
 
       // Commitments
       commitments: {
@@ -51,20 +57,22 @@ const FirebaseExperimentsPage = ({ firebase }) => {
         talk,
         participate,
         divestment,
-      }
+      },
     };
 
     // https://firebase.google.com/docs/functions/callable
     // TODO: Handle errors - e.g. submitting a commitment with the same email
-    const createCommitment = firebase.functions().httpsCallable('createCommitment');
+    const createCommitment = firebase
+      .functions()
+      .httpsCallable('createCommitment');
     createCommitment(commitmentData)
       .then(result => console.log('created', result.data))
       .catch(err => console.error(err));
-  }
+  };
 
   const labelStyle = {
     display: 'block',
-  }
+  };
 
   return (
     <>
@@ -75,7 +83,7 @@ const FirebaseExperimentsPage = ({ firebase }) => {
             name="name"
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={e => setName(e.target.value)}
           />
           {` Name`}
         </label>
@@ -85,9 +93,19 @@ const FirebaseExperimentsPage = ({ firebase }) => {
             name="email"
             type="text"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
           />
           {` Email`}
+        </label>
+
+        <label style={labelStyle}>
+          <input
+            name="country"
+            type="text"
+            value={country}
+            onChange={e => setCountry(e.target.value)}
+          />
+          {` Country`}
         </label>
 
         <label style={labelStyle}>
@@ -95,7 +113,7 @@ const FirebaseExperimentsPage = ({ firebase }) => {
             name="postalCode"
             type="text"
             value={postalCode}
-            onChange={(e) => setPostalCode(e.target.value)}
+            onChange={e => setPostalCode(e.target.value)}
           />
           {` Postal Code`}
         </label>

@@ -8,10 +8,7 @@ const db = firebaseApp.firestore();
 // - validate input data fields. Perhaps https://hapi.dev/module/joi/#usage, or typescript?
 //   - Validate the semantic fields: email, postalCode, etc
 exports.createCommitment = functions.https.onCall(async (data, context) => {
-  let {
-    commitments,
-    postalCode,
-  } = data;
+  let { commitments, postalCode } = data;
 
   // Handle un-entered postalCode code. Empty string breaks firestore dot notation
   // https://firebase.google.com/docs/firestore/manage-data/add-data#update_fields_in_nested_objects
@@ -23,17 +20,18 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
   const plus1 = admin.firestore.FieldValue.increment(1);
 
   // TODO sanitizer.sanitizeText(text); See https://firebase.google.com/docs/functions/callable#sending_back_the_result
+  // Don't just throw everything in the database
 
   try {
     // Run individual and aggregate doc updates together in a transaction to ensure consistency
-    await db.runTransaction(async (transaction) => {
+    await db.runTransaction(async transaction => {
       // I. Get all pre-existing commitments
       const allCommitments = [];
       const allCommitmentsRef = db.collection('commitments');
       const allCommitmentsSnapshot = await transaction.get(allCommitmentsRef);
       const aggregateDoc = await transaction.get(aggregateRef);
       allCommitmentsSnapshot.forEach(commitment => {
-        allCommitments.push(commitment.data())
+        allCommitments.push(commitment.data());
       });
 
       // II. Write new commitment doc
@@ -59,7 +57,9 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
         transaction.set(aggregateRef, newCommitments);
       } else {
         const preExistingCommitments = aggregateDoc.data().commitments;
-        const newCommitments = { commitments: [...preExistingCommitments, data] };
+        const newCommitments = {
+          commitments: [...preExistingCommitments, data],
+        };
         console.log('Updating aggr doc. newCommitments', newCommitments);
         transaction.update(aggregateRef, newCommitments);
       }
