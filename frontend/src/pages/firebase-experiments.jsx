@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
+import Ajv from 'ajv';
 import withFirebase from '../components/withFirebase';
+import Schema from '../commitment.schema.json';
+import { countries as countriesList } from 'countries-list';
+
+var ajv = new Ajv();
+var validate = ajv.compile(Schema);
 
 const Display = ({ firebase }) => {
   const [aggregateData, setAggregateData] = useState({});
@@ -42,6 +48,7 @@ const FirebaseExperimentsPage = ({ firebase }) => {
   const [divestment, setDivestment] = useState(false);
 
   const handleSubmit = event => {
+    console.log('SUBMIT');
     event.preventDefault();
 
     const commitmentData = {
@@ -59,6 +66,21 @@ const FirebaseExperimentsPage = ({ firebase }) => {
         divestment,
       },
     };
+
+    // TODO move validation into its own module
+    // Static validation
+    var valid = validate(commitmentData);
+    console.log('validation: ', validate.errors);
+
+    // Country validation
+    const countries = Object.values(countriesList).map(c => c.name);
+    console.log('countries', countries);
+    if (countries.indexOf(commitmentData.country) === -1) {
+      console.log('validation: bad country', commitmentData.country)
+    }
+
+    // TODO checkout https://www.npmjs.com/package/postal-codes-js for postal code validation
+
 
     // https://firebase.google.com/docs/functions/callable
     // TODO: Handle errors - e.g. submitting a commitment with the same email
