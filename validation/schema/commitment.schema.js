@@ -1,4 +1,4 @@
-exports = {
+module.exports = {
   '$schema': 'http://json-schema.org/draft-07/schema#',
   '$id': 'http://example.com/commitment.schema.json',
   title: 'Commitment',
@@ -8,7 +8,6 @@ exports = {
     name: {
       description: "The user's name",
       type: 'string',
-      minLength: 1,
     },
     email: {
       description: "The user's email",

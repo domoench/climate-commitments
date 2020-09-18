@@ -13,8 +13,7 @@ const countriesList = cl.countries;
  * - Later: Package it as node package and host it on github packages
  */
 
-var ajv = new Ajv();
-var validator = ajv.compile(schema);
+var ajv = new Ajv({ allErrors: true });
 
 const countryCodeLookup = {};
 Object.entries(countriesList).forEach(([code, data]) => {
@@ -27,9 +26,9 @@ const validate = commitmentData => {
   let errors = [];
 
   // Basic JSON validation: Name + Email
-  const valid = validator(commitmentData);
+  const valid = ajv.validate(schema, commitmentData);
   if (!valid) {
-    errors = errors.concat(validator.errors);
+    errors = errors.concat(ajv.errorsText());
   }
 
   // Country Validation
@@ -37,7 +36,6 @@ const validate = commitmentData => {
 
   // TODO: Will only need to do this serverside, as frontend countries will
   // be from a dropdown
-  console.log('countries', countries);
   if (countries.indexOf(country) === -1) {
     errors.push(`Bad country: ${country}`);
   }

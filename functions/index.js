@@ -14,7 +14,7 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
   // Validate input data
   const errors = validation.validate(data);
   if (errors.length) {
-    console.error('Validation error: ', validation.validate(data));
+    console.error('Validation errors: ', errors);
     throw new functions.https.HttpsError('invalid-argument', errors);
   }
 
@@ -44,7 +44,9 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
       // II. Write new commitment doc
       const commitmentDoc = await transaction.get(commitmentRef);
       if (commitmentDoc.exists) {
-        throw new DuplicateEmailError(`Commitments previously submitted for ${commitmentId}.`);
+        throw new DuplicateEmailError(
+          `Commitments previously submitted for ${commitmentId}.`
+        );
       }
       const commitmentData = {
         ...data,
