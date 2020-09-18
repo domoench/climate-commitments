@@ -13,8 +13,11 @@
     "node": "10"
   },
   "dependencies": {
+    "ajv": "^6.12.5",
+    "countries-list": "^2.5.6",
     "firebase-admin": "^9.1.1",
-    "firebase-functions": "^3.11.0"
+    "firebase-functions": "^3.11.0",
+    "postal-codes-js": "^2.5.1"
   },
   "devDependencies": {
     "eslint": "^5.12.0",

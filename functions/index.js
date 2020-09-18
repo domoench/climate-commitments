@@ -1,14 +1,25 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const validation = require('./validation/index.js');
 
 const firebaseApp = admin.initializeApp(functions.config().firebase);
 const db = firebaseApp.firestore();
 
-// TODO
-// - validate input data fields. Perhaps https://hapi.dev/module/joi/#usage, or typescript?
-//   - Validate the semantic fields: email, postalCode, etc
+class DuplicateEmailError extends Error {}
+
 exports.createCommitment = functions.https.onCall(async (data, context) => {
-  let { commitments, postalCode } = data;
+  const { commitments } = data;
+  let { postalCode, name } = data;
+
+  // Validate input data
+  const errors = validation.validate(data);
+  if (errors.length) {
+    console.error('Validation errors: ', errors);
+    throw new functions.https.HttpsError('invalid-argument', errors);
+  }
+
+  // If no name submitted they chose to be anonymous
+  name = name === '' ? 'Anonymous' : name;
 
   // Handle un-entered postalCode code. Empty string breaks firestore dot notation
   // https://firebase.google.com/docs/firestore/manage-data/add-data#update_fields_in_nested_objects
@@ -17,10 +28,6 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
   const commitmentId = data.email;
   const commitmentRef = db.collection('commitments').doc(commitmentId);
   const aggregateRef = db.collection('aggregate').doc('all');
-  const plus1 = admin.firestore.FieldValue.increment(1);
-
-  // TODO sanitizer.sanitizeText(text); See https://firebase.google.com/docs/functions/callable#sending_back_the_result
-  // Don't just throw everything in the database
 
   try {
     // Run individual and aggregate doc updates together in a transaction to ensure consistency
@@ -37,7 +44,9 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
       // II. Write new commitment doc
       const commitmentDoc = await transaction.get(commitmentRef);
       if (commitmentDoc.exists) {
-        throw new Error(`Commitment doc already exists: id:${commitmentId}.`);
+        throw new DuplicateEmailError(
+          `Commitments previously submitted for ${commitmentId}.`
+        );
       }
       const commitmentData = {
         ...data,
@@ -46,7 +55,7 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
       };
       await transaction.set(commitmentRef, commitmentData);
 
-      // III. Write new aggregate doc
+      // III. Create/Update aggregate doc
       // Aggregate doc shape is:
       //   {
       //     commitments: [...]
@@ -66,5 +75,10 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
     });
   } catch (e) {
     console.error('Transaction failure:', e);
+    if (e instanceof DuplicateEmailError) {
+      throw new functions.https.HttpsError('already-exists', e);
+    } else {
+      throw new functions.https.HttpsError('internal');
+    }
   }
 });
