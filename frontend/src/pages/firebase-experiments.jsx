@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
-import Ajv from 'ajv';
-import withFirebase from '../components/withFirebase';
-import Schema from '../commitment.schema.json';
-import { countries as countriesList } from 'countries-list';
 
-var ajv = new Ajv();
-var validate = ajv.compile(Schema);
+import withFirebase from '../components/withFirebase';
+import { validate } from '../validation';
 
 const Display = ({ firebase }) => {
   const [aggregateData, setAggregateData] = useState({});
@@ -48,7 +44,6 @@ const FirebaseExperimentsPage = ({ firebase }) => {
   const [divestment, setDivestment] = useState(false);
 
   const handleSubmit = event => {
-    console.log('SUBMIT');
     event.preventDefault();
 
     const commitmentData = {
@@ -67,29 +62,19 @@ const FirebaseExperimentsPage = ({ firebase }) => {
       },
     };
 
-    // TODO move validation into its own module
-    // Static validation
-    var valid = validate(commitmentData);
-    console.log('validation: ', validate.errors);
-
-    // Country validation
-    const countries = Object.values(countriesList).map(c => c.name);
-    console.log('countries', countries);
-    if (countries.indexOf(commitmentData.country) === -1) {
-      console.log('validation: bad country', commitmentData.country)
-    }
-
-    // TODO checkout https://www.npmjs.com/package/postal-codes-js for postal code validation
-
+    console.log('VALIDATING. frontend errors: ', validate(commitmentData));
 
     // https://firebase.google.com/docs/functions/callable
-    // TODO: Handle errors - e.g. submitting a commitment with the same email
     const createCommitment = firebase
       .functions()
       .httpsCallable('createCommitment');
     createCommitment(commitmentData)
       .then(result => console.log('created', result.data))
-      .catch(err => console.error(err));
+      .catch(err => {
+        // TODO surface server error in UI
+        console.error('Error code: ', err.code)
+        console.error(err)
+      });
   };
 
   const labelStyle = {

@@ -1,14 +1,19 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const validation = require('./validation/index.js');
 
 const firebaseApp = admin.initializeApp(functions.config().firebase);
 const db = firebaseApp.firestore();
 
-// TODO
-// - validate input data fields. Perhaps https://hapi.dev/module/joi/#usage, or typescript?
-//   - Validate the semantic fields: email, postalCode, etc
 exports.createCommitment = functions.https.onCall(async (data, context) => {
   let { commitments, postalCode } = data;
+
+  // Validate input data
+  const errors = validation.validate(data);
+  if (errors.length) {
+    console.error('Validation error: ', validation.validate(data));
+    throw new functions.https.HttpsError('invalid-argument', errors);
+  }
 
   // Handle un-entered postalCode code. Empty string breaks firestore dot notation
   // https://firebase.google.com/docs/firestore/manage-data/add-data#update_fields_in_nested_objects
@@ -18,9 +23,6 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
   const commitmentRef = db.collection('commitments').doc(commitmentId);
   const aggregateRef = db.collection('aggregate').doc('all');
   const plus1 = admin.firestore.FieldValue.increment(1);
-
-  // TODO sanitizer.sanitizeText(text); See https://firebase.google.com/docs/functions/callable#sending_back_the_result
-  // Don't just throw everything in the database
 
   try {
     // Run individual and aggregate doc updates together in a transaction to ensure consistency
