@@ -6,12 +6,8 @@ const schema = require('./schema/commitment.schema');
 
 const countriesList = cl.countries;
 
-/* TODO
- * - Now: Move this module up to parent directory to be shared between
- *   frontend and funcitons (server). Dumb way to do that is a git commit
- *   pre-hook that checks if the 3 versions are in sync.
- * - Later: Package it as node package and host it on github packages
- */
+// TODO Package this as node package and host it on github packages so
+// you don't need to copy it between frontend/ and functions/ subdirs
 
 var ajv = new Ajv({ allErrors: true });
 
