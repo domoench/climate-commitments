@@ -37,7 +37,6 @@ const validate = commitmentData => {
 
   // TODO: Will only need to do this serverside, as frontend countries will
   // be from a dropdown
-  console.log('countries', countries);
   if (countries.indexOf(country) === -1) {
     errors.push(`Bad country: ${country}`);
   }

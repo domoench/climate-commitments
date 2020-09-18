@@ -8,7 +8,6 @@ exports = {
     name: {
       description: "The user's name",
       type: 'string',
-      minLength: 1,
     },
     email: {
       description: "The user's email",
