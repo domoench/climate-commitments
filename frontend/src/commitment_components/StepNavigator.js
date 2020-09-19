@@ -8,6 +8,8 @@ const StepNavigator = ({ step, setStep, beforeNext }) => {
   const prevStep = e => {
     if (step - 1 >= 0) {
       setStep(step - 1);
+    } else {
+      console.error('TODO: Disable Back button when it is not possible');
     }
   };
 
@@ -19,6 +21,8 @@ const StepNavigator = ({ step, setStep, beforeNext }) => {
     if (step + 1 < stepComponents.length) {
       console.log(`step:${step}. going to:${step+1}`);
       setStep(step + 1);
+    } else {
+      console.error('TODO: Disable Next button when it is not possible');
     }
   };
 
