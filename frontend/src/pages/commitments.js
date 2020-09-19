@@ -34,7 +34,6 @@ const Commitments = () => {
 
   // TODO Next steps
   // - Enable true form submission
-  // - Fix loss of focus on controlled form inputs
   return (
     <Layout>
       <SEO title="Commitments" />

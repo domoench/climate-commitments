@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
@@ -8,15 +8,28 @@ import StepNavigator from '../commitment_components/StepNavigator';
 const countries = Object.values(countriesList).map(c => c.name);
 
 const Signup = ({ step, setStep, userState, setUserState }) => {
+  // TODO try giving form its own state so it doesn't re-render upon every userState change
+  //
+  // Yes it works. Problem is trying to have the app userState be live updated as the form state
+  // changes. The unintended consequence of that is repeated re-renders of the form component, which
+  // leads to loss of focus on input fields.
+  // By creating independent form state here we fix that problem. Having duplicated form state is
+  // a necessary complication here.
+  //
+  // Next up try out Formik to manage separate form state along with validation + other niceties without
+  // rolling my own solution.
+  const [formState, setFormState] = useState(userState);
+  console.log('formState', formState);
+
   const textChangeHandler = fieldName => event => {
-    setUserState({
-      ...userState,
+    setFormState({
+      ...setFormState,
       [fieldName]: event.target.value,
     });
   };
 
   const handleSubmit = () => {
-    console.log('SUBMIT', userState);
+    console.log('SUBMIT', formState);
   }
 
   return (
@@ -32,7 +45,7 @@ const Signup = ({ step, setStep, userState, setUserState }) => {
           <Form.Control
             as="input"
             type="text"
-            value={userState.name}
+            value={formState.name}
             onChange={textChangeHandler('name')}
             placeholder="Name"
           />
@@ -56,7 +69,7 @@ const Signup = ({ step, setStep, userState, setUserState }) => {
           <Form.Control
             as="input"
             type="text"
-            value={userState.postalCode}
+            value={formState.postalCode}
             onChange={textChangeHandler('postalCode')}
             placeholder="Postal Code"
           />
@@ -67,7 +80,7 @@ const Signup = ({ step, setStep, userState, setUserState }) => {
           <Form.Control
             as="input"
             type="text"
-            value={userState.email}
+            value={formState.email}
             onChange={textChangeHandler('email')}
             placeholder="Enter email"
           />
