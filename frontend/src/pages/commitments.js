@@ -13,7 +13,7 @@ const Commitments = () => {
     name: '',
     email: '',
     postalCode: '',
-    country: '',
+    country: 'United States', // TODO ok to be so US centric?
     commitments: {
       callRep: false,
       talk: false,
@@ -32,8 +32,6 @@ const Commitments = () => {
     return <StepComponent {...props} />
   };
 
-  // TODO Next steps
-  // - Enable true form submission
   return (
     <Layout>
       <SEO title="Commitments" />

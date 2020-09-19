@@ -25,6 +25,12 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
   // https://firebase.google.com/docs/firestore/manage-data/add-data#update_fields_in_nested_objects
   postalCode = postalCode === '' ? 'none' : postalCode;
 
+  const commitmentData = {
+    ...data,
+    postalCode,
+    createdAt: new Date(),
+  };
+
   const commitmentId = data.email;
   const commitmentRef = db.collection('commitments').doc(commitmentId);
   const aggregateRef = db.collection('aggregate').doc('all');
@@ -48,11 +54,6 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
           `Commitments previously submitted for ${commitmentId}.`
         );
       }
-      const commitmentData = {
-        ...data,
-        postalCode,
-        createdAt: new Date(),
-      };
       await transaction.set(commitmentRef, commitmentData);
 
       // III. Create/Update aggregate doc
@@ -61,18 +62,20 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
       //     commitments: [...]
       //   }
       if (!aggregateDoc.exists) {
-        const newCommitments = { commitments: [data] };
+        const newCommitments = { commitments: [commitmentData] };
         console.log('Creating aggr doc. newCommitments', newCommitments);
         transaction.set(aggregateRef, newCommitments);
       } else {
         const preExistingCommitments = aggregateDoc.data().commitments;
         const newCommitments = {
-          commitments: [...preExistingCommitments, data],
+          commitments: [...preExistingCommitments, commitmentData],
         };
         console.log('Updating aggr doc. newCommitments', newCommitments);
         transaction.update(aggregateRef, newCommitments);
       }
     });
+    // Return success result
+    return commitmentData;
   } catch (e) {
     console.error('Transaction failure:', e);
     if (e instanceof DuplicateEmailError) {

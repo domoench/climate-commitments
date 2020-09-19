@@ -15,6 +15,7 @@ const StepNavigator = ({ step, setStep, beforeNext }) => {
 
   const nextStep = e => {
     if (beforeNext) {
+      console.log('beforeNext'); // TODO
       beforeNext();
     }
 

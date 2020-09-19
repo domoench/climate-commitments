@@ -3,11 +3,72 @@ import Form from 'react-bootstrap/Form';
 import { countries as countriesList } from 'countries-list';
 import { Formik } from 'formik';
 
+import { validate } from '../validation';
 import StepNavigator from '../commitment_components/StepNavigator';
+import withFirebase from '../components/withFirebase';
 
 const countries = Object.values(countriesList).map(c => c.name);
 
-const Signup = ({ step, setStep, userState, setUserState }) => {
+// TODO submit state loading wheel
+
+const validateForm = values => {
+  // The validation module is stricter than we need to be. Only
+  // prevent submission on certain validation errors.
+  const strictFields = ['email'];
+  const strictErrors = validate(values);
+
+  const filteredErrors = {};
+  Object.entries(strictErrors).forEach(([field, error]) => {
+    if (strictFields.indexOf(field) !== -1) {
+      filteredErrors[field] = error;
+    }
+  });
+  return filteredErrors;
+};
+
+const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
+  const handleSubmit = (values, { setSubmitting }) => {
+    console.log('TODO Submit Handler', values);
+    const { name, email, postalCode, country } = values;
+    const { callBank, callRep, talk, participate, divestment } = userState;
+
+    const commitmentData = {
+      name,
+      email,
+      postalCode,
+      country,
+
+      // Commitments
+      commitments: {
+        callBank,
+        callRep,
+        talk,
+        participate,
+        divestment,
+      },
+    };
+
+    console.log('VALIDATING. frontend errors: ', validate(commitmentData));
+
+    // https://firebase.google.com/docs/functions/callable
+    const createCommitment = firebase
+      .functions()
+      .httpsCallable('createCommitment');
+    createCommitment(commitmentData)
+      .then(result => {
+        console.log('Successful submission', result.data)
+        // TODO set userState to commitmentData
+      })
+      .catch(err => {
+        // TODO surface server error in UI
+        console.error('Error code: ', err.code);
+        console.error(err);
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
+  };
+
   return (
     <>
       <div className="text-center">
@@ -15,13 +76,14 @@ const Signup = ({ step, setStep, userState, setUserState }) => {
         <p>Now, enter your info so we can follow up with blah blabh blah.</p>
       </div>
       <Formik
-        initialValues={{ name: userState.name }}
-        validate={values => {
-          console.log('TODO Validation', values);
+        initialValues={{
+          name: userState.name,
+          country: userState.country,
+          postalCode: userState.postalCode,
+          email: userState.email,
         }}
-        onSubmit={values => {
-          console.log('TODO Submit Handler', values);
-        }}
+        validate={validateForm}
+        onSubmit={handleSubmit}
       >
         {({
           values,
@@ -33,6 +95,7 @@ const Signup = ({ step, setStep, userState, setUserState }) => {
           isSubmitting,
         }) => (
           <>
+            {isSubmitting && <span>SUBMITTINGGGG TODO</span>}
             <Form>
               <Form.Group controlId="validationFormikName">
                 <Form.Label>Name</Form.Label>
@@ -43,6 +106,10 @@ const Signup = ({ step, setStep, userState, setUserState }) => {
                   value={values.name}
                   onChange={handleChange}
                 />
+                <Form.Text muted>
+                  Leave blank to appear as 'Anonymous' on the public commitments
+                  visualization.
+                </Form.Text>
               </Form.Group>
 
               <Form.Group controlId="validationFormikCountry">
@@ -68,6 +135,7 @@ const Signup = ({ step, setStep, userState, setUserState }) => {
                   placeholder="Postal Code"
                   value={values.postalCode}
                   onChange={handleChange}
+                  isInvalid={!!errors.postalCode}
                 />
               </Form.Group>
 
@@ -79,7 +147,11 @@ const Signup = ({ step, setStep, userState, setUserState }) => {
                   placeholder="Enter email"
                   value={values.email}
                   onChange={handleChange}
+                  isInvalid={!!errors.email}
                 />
+                <Form.Control.Feedback type="invalid">
+                  Check your email format.
+                </Form.Control.Feedback>
               </Form.Group>
             </Form>
 
@@ -95,4 +167,4 @@ const Signup = ({ step, setStep, userState, setUserState }) => {
   );
 };
 
-export default Signup;
+export default withFirebase(Signup);
