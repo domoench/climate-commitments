@@ -1,5 +1,6 @@
 import React from 'react';
 import Form from 'react-bootstrap/Form';
+import Alert from 'react-bootstrap/Alert';
 import { countries as countriesList } from 'countries-list';
 import { Formik } from 'formik';
 
@@ -9,26 +10,33 @@ import withFirebase from '../components/withFirebase';
 
 const countries = Object.values(countriesList).map(c => c.name);
 
-// TODO submit state loading wheel
-
-const validateForm = values => {
-  // The validation module is stricter than we need to be. Only
-  // prevent submission on certain validation errors.
-  const strictFields = ['email'];
-  const strictErrors = validate(values);
-
-  const filteredErrors = {};
-  Object.entries(strictErrors).forEach(([field, error]) => {
-    if (strictFields.indexOf(field) !== -1) {
-      filteredErrors[field] = error;
-    }
-  });
-  return filteredErrors;
-};
-
 const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
-  const handleSubmit = (values, { setSubmitting }) => {
+  const validateForm = values => {
+    console.log('validating form');
+    // The validation module is stricter than we need to be. Only
+    // prevent submission on certain validation errors.
+    const strictFields = ['email'];
+    const strictErrors = validate(values);
+
+    const filteredErrors = {};
+    Object.entries(strictErrors).forEach(([field, error]) => {
+      if (strictFields.indexOf(field) !== -1) {
+        filteredErrors[field] = error;
+      }
+    });
+
+    /*
+    if (Object.keys(filteredErrors).length !== 0) {
+      return Promise.reject(filteredErrors);
+    }
+    return Promise.resolve({})
+    */
+    return Promise.resolve(filteredError)
+  };
+
+  const handleSubmit = (values, { setSubmitting, setStatus }) => {
     console.log('TODO Submit Handler', values);
+    setStatus(null);
     const { name, email, postalCode, country } = values;
     const { callBank, callRep, talk, participate, divestment } = userState;
 
@@ -48,24 +56,23 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
       },
     };
 
-    console.log('VALIDATING. frontend errors: ', validate(commitmentData));
-
     // https://firebase.google.com/docs/functions/callable
     const createCommitment = firebase
       .functions()
       .httpsCallable('createCommitment');
-    createCommitment(commitmentData)
+
+    return createCommitment(commitmentData)
       .then(result => {
-        console.log('Successful submission', result.data)
+        console.log('handleSubmit.then(). Successful submission', result.data);
+        setSubmitting(false);
         // TODO set userState to commitmentData
+        return result;
       })
       .catch(err => {
-        // TODO surface server error in UI
-        console.error('Error code: ', err.code);
-        console.error(err);
-      })
-      .finally(() => {
-        setSubmitting(false);
+        console.error('handleSubmit.catch(). Submission error: ', err);
+        setStatus(`Problem submitting: ${err}`);
+
+        throw err;
       });
   };
 
@@ -88,14 +95,15 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
         {({
           values,
           errors,
+          status,
           touched,
           handleChange,
           handleBlur,
-          handleSubmit,
+          submitForm,
           isSubmitting,
-        }) => (
+        }) => console.log(`Form render(). isSubmitting:${isSubmitting}`) || (
           <>
-            {isSubmitting && <span>SUBMITTINGGGG TODO</span>}
+            {status && <Alert variant="warning">{status}</Alert>}
             <Form>
               <Form.Group controlId="validationFormikName">
                 <Form.Label>Name</Form.Label>
@@ -158,7 +166,8 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
             <StepNavigator
               step={step}
               setStep={setStep}
-              beforeNext={handleSubmit}
+              beforeNext={submitForm}
+              nextLoading={isSubmitting}
             />
           </>
         )}

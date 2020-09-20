@@ -79,7 +79,7 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
   } catch (e) {
     console.error('Transaction failure:', e);
     if (e instanceof DuplicateEmailError) {
-      throw new functions.https.HttpsError('already-exists', e);
+      throw new functions.https.HttpsError('already-exists', e.message);
     } else {
       throw new functions.https.HttpsError('internal');
     }
