@@ -23,7 +23,7 @@ const validate = commitmentData => {
   // errors is a hash of error messages for each field key
   let errors = {};
 
-  // Basic JSON validation: Name + Email
+  // Basic JSON validation: Name, Email, commmitments
   const valid = ajv.validate(schema, commitmentData);
   if (!valid) {
     ajv.errors.forEach(error => {
@@ -40,6 +40,9 @@ const validate = commitmentData => {
   }
 
   // If a country has been selected, we can validate the postalCode
+  // TODO: For now, no need to be so strict. Perhaps we won't even use
+  // postalCode to slice data since cardinality is so high.
+  /*
   const countryCode = countryCodeLookup[country];
   if (countryCode) {
     const pcResult = postalCodes.validate(countryCode, postalCode);
@@ -47,6 +50,7 @@ const validate = commitmentData => {
       errors.postalCode = pcResult;
     }
   }
+  */
 
   return errors;
 };

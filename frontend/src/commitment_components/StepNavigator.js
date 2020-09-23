@@ -1,69 +1,58 @@
 import React from 'react';
 import Button from 'react-bootstrap/Button';
-import Spinner from 'react-bootstrap/Spinner';
 
 import stepComponents from './stepComponents';
 
-const StepNavigator = ({ step, setStep, beforeNext, nextLoading }) => {
-  const canStepForward = step + 1 < stepComponents.length;
-  const canStepBackward = step - 1 >= 0;
+const canStepForward = step => step + 1 < stepComponents.length;
+const canStepBackward = step => step - 1 >= 0;
 
+export const PrevStep = ({ step, setStep }) => {
   const prevStep = e => {
-    if (canStepBackward) {
+    if (canStepBackward(step)) {
       setStep(step - 1);
     }
   };
 
-  const nextStep = async e => {
-    // Continue to the next step
-    // If there is a beforeNext async function defined, execute that first
-    // and only proceed to the next step if it resolves.
-    // TODO: Why is this working when an empty form is submitted, shouldn't validation
-    // complain about blank email?
-    const func = beforeNext ? beforeNext : () => Promise.resolve();
-    const promise = func();
-    promise.then(result => {
-      console.log('A', result);
-      if (canStepForward) {
-        setStep(step + 1);
-      }
-    })
-    .catch(err => {
-      console.log('B', err);
-    });
-  };
-
-  console.log('StepNavigator render(). nextLoading', nextLoading);
   return (
-    <div className="text-center mt-4">
-      <Button
-        onClick={prevStep}
-        variant="light"
-        className="mr-4"
-        size="lg"
-        disabled={!canStepBackward}
-      >
-        Back
-      </Button>
-      <Button
-        onClick={nextStep}
-        className="bg-primary"
-        size="lg"
-        disabled={!canStepForward || nextLoading}
-      >
-        {nextLoading && (
-          <Spinner
-            as="span"
-            animation="border"
-            size="sm"
-            role="status"
-            aria-hidden="true"
-          />
-        )}
-        Next
-      </Button>
-    </div>
+    <Button
+      onClick={prevStep}
+      className="bg-primary"
+      size="lg"
+      disabled={!canStepBackward(step)}
+    >
+      Back
+    </Button>
   );
 };
 
-export default StepNavigator;
+export const NextStep = ({ step, setStep }) => {
+  const nextStep = e => {
+    if (canStepForward(step)) {
+      setStep(step + 1);
+    }
+  };
+
+  return (
+    <Button
+      onClick={nextStep}
+      className="bg-primary"
+      size="lg"
+      disabled={!canStepForward(step)}
+    >
+      Next
+    </Button>
+  );
+};
+
+export const StepNavigatorWrapper = ({ children }) => (
+  <div className="text-center mt-4">{children}</div>
+);
+
+export const BasicStepNavigator = ({ step, setStep }) => {
+  return (
+    <StepNavigatorWrapper>
+      <PrevStep step={step} setStep={setStep} />
+      <NextStep step={step} setStep={setStep} />
+    </StepNavigatorWrapper>
+  );
+};

@@ -13,9 +13,8 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
 
   // Validate input data
   const errors = validation.validate(data);
-  if (errors.length) {
-    console.error('Validation errors: ', errors);
-    throw new functions.https.HttpsError('invalid-argument', errors);
+  if (Object.keys(errors).length) {
+    throw new functions.https.HttpsError('invalid-argument', JSON.stringify(errors));
   }
 
   // If no name submitted they chose to be anonymous

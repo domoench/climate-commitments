@@ -1,5 +1,5 @@
 import React from 'react';
-import StepNavigator from '../commitment_components/StepNavigator';
+import { BasicStepNavigator } from '../commitment_components/StepNavigator';
 
 const Welcome = ({ step, setStep }) => {
   return  (
@@ -13,7 +13,7 @@ const Welcome = ({ step, setStep }) => {
           others. Start taking collective action now.
         </p>
       </div>
-      <StepNavigator step={step} setStep={setStep} />
+      <BasicStepNavigator step={step} setStep={setStep} />
     </>
   );
 };

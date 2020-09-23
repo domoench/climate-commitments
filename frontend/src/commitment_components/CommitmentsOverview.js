@@ -3,7 +3,7 @@ import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Row from 'react-bootstrap/Row';
 import Badge from 'react-bootstrap/Badge';
-import StepNavigator from '../commitment_components/StepNavigator';
+import { BasicStepNavigator } from '../commitment_components/StepNavigator';
 
 const CommitmentsOverview = ({
   step,
@@ -31,14 +31,14 @@ const CommitmentsOverview = ({
       text:
         ' Through the hard work of organizations dedicated to climate and the environment, we can aggregate our efforts to make progress.',
       button: 'JOIN',
-      id: 'join',
+      id: 'participate',
     },
     {
       action: 'Encourage your employer to divest',
       text:
         'bloom psdopfasdjio asdf asdf asdf asdfasdf asdf asd ff oasid aiosioao aooas etlml asle oi',
       button: 'DIVEST',
-      id: 'divest',
+      id: 'divestment',
     },
     {
       action: 'Call your bank',
@@ -109,7 +109,7 @@ const CommitmentsOverview = ({
           </Card>
         </Row>
       ))}
-      <StepNavigator step={step} setStep={setStep} />
+      <BasicStepNavigator step={step} setStep={setStep} />
     </>
   );
 };

@@ -1,18 +1,22 @@
 import React from 'react';
 import Form from 'react-bootstrap/Form';
 import Alert from 'react-bootstrap/Alert';
+import Button from 'react-bootstrap/Button';
+import Spinner from 'react-bootstrap/Spinner';
 import { countries as countriesList } from 'countries-list';
 import { Formik } from 'formik';
 
 import { validate } from '../validation';
-import StepNavigator from '../commitment_components/StepNavigator';
+import {
+  StepNavigatorWrapper,
+  PrevStep,
+} from '../commitment_components/StepNavigator';
 import withFirebase from '../components/withFirebase';
 
 const countries = Object.values(countriesList).map(c => c.name);
 
 const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
   const validateForm = values => {
-    console.log('validating form');
     // The validation module is stricter than we need to be. Only
     // prevent submission on certain validation errors.
     const strictFields = ['email'];
@@ -25,20 +29,19 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
       }
     });
 
-    /*
-    if (Object.keys(filteredErrors).length !== 0) {
-      return Promise.reject(filteredErrors);
-    }
-    return Promise.resolve({})
-    */
-    return Promise.resolve(filteredError)
+    return filteredErrors;
   };
 
-  const handleSubmit = (values, { setSubmitting, setStatus }) => {
-    console.log('TODO Submit Handler', values);
+  const submitCommitment = (values, { setSubmitting, setStatus }) => {
     setStatus(null);
     const { name, email, postalCode, country } = values;
-    const { callBank, callRep, talk, participate, divestment } = userState;
+    const {
+      callBank,
+      callRep,
+      talk,
+      participate,
+      divestment,
+    } = userState.commitments;
 
     const commitmentData = {
       name,
@@ -63,16 +66,18 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
 
     return createCommitment(commitmentData)
       .then(result => {
-        console.log('handleSubmit.then(). Successful submission', result.data);
+        setUserState({
+          ...userState,
+          name,
+          email,
+          postalCode,
+          country,
+        });
         setSubmitting(false);
-        // TODO set userState to commitmentData
-        return result;
+        setStep(step + 1);
       })
       .catch(err => {
-        console.error('handleSubmit.catch(). Submission error: ', err);
         setStatus(`Problem submitting: ${err}`);
-
-        throw err;
       });
   };
 
@@ -90,7 +95,7 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
           email: userState.email,
         }}
         validate={validateForm}
-        onSubmit={handleSubmit}
+        onSubmit={submitCommitment}
       >
         {({
           values,
@@ -99,12 +104,12 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
           touched,
           handleChange,
           handleBlur,
-          submitForm,
+          handleSubmit,
           isSubmitting,
-        }) => console.log(`Form render(). isSubmitting:${isSubmitting}`) || (
+        }) => (
           <>
             {status && <Alert variant="warning">{status}</Alert>}
-            <Form>
+            <Form onSubmit={handleSubmit}>
               <Form.Group controlId="validationFormikName">
                 <Form.Label>Name</Form.Label>
                 <Form.Control
@@ -161,14 +166,27 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
                   Check your email format.
                 </Form.Control.Feedback>
               </Form.Group>
+              <StepNavigatorWrapper>
+                <PrevStep step={step} setStep={setStep} />
+                <Button
+                  type="submit"
+                  className="bg-primary"
+                  size="lg"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting && (
+                    <Spinner
+                      as="span"
+                      animation="border"
+                      size="sm"
+                      role="status"
+                      aria-hidden="true"
+                    />
+                  )}
+                  Next
+                </Button>
+              </StepNavigatorWrapper>
             </Form>
-
-            <StepNavigator
-              step={step}
-              setStep={setStep}
-              beforeNext={submitForm}
-              nextLoading={isSubmitting}
-            />
           </>
         )}
       </Formik>

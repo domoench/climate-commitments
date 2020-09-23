@@ -4,23 +4,26 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 
 import Layout from '../components/layout';
 import stepComponents from '../commitment_components/stepComponents';
+import { COMMITMENT_TYPES } from '../commitments';
 
 const Commitments = () => {
   const [step, setStep] = useState(0);
   const [error, toggleError] = useState(false);
 
+  const initialCommitmentState = Object.keys(COMMITMENT_TYPES).reduce(
+    (accum, commitmentKey) => ({
+      ...accum,
+      [commitmentKey]: false,
+    }),
+    {}
+  );
+
   const [userState, setUserState] = useState({
     name: '',
     email: '',
     postalCode: '',
-    country: 'United States', // TODO ok to be so US centric?
-    commitments: {
-      callRep: false,
-      talk: false,
-      join: false,
-      divest: false,
-      callBank: false,
-    },
+    country: 'United States',
+    commitments: initialCommitmentState,
   });
 
   const showError = e => {
@@ -29,12 +32,19 @@ const Commitments = () => {
 
   const CurrentStepComponent = props => {
     const StepComponent = stepComponents[step];
-    return <StepComponent {...props} />
+    return <StepComponent {...props} />;
   };
 
   return (
     <Layout>
       <SEO title="Commitments" />
+
+      <div className="mt-4">
+        <ProgressBar
+          variant="secondary"
+          now={(step * 100) / (stepComponents.length - 1)}
+        />
+      </div>
 
       <CurrentStepComponent
         step={step}
@@ -42,10 +52,6 @@ const Commitments = () => {
         userState={userState}
         setUserState={setUserState}
       />
-
-      <div className="mt-4">
-        <ProgressBar variant="secondary" now={step * 20} />
-      </div>
     </Layout>
   );
 };
