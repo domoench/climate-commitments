@@ -24,9 +24,6 @@ const IndexPage = () => (
         <Link to="/elected-reps/">Elected Reps</Link>
       </li>
       <li>
-        <Link to="/firebase-experiments/">Firebase Experiments</Link>
-      </li>
-      <li>
         <Link to="/viz/">Data Visualization</Link>
       </li>
     </ul>
