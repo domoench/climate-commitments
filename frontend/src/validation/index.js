@@ -9,7 +9,7 @@ const countriesList = cl.countries;
 // TODO Package this as node package and host it on github packages so
 // you don't need to copy it between frontend/ and functions/ subdirs
 
-var ajv = new Ajv({ allErrors: true });
+var ajv = new Ajv({ allErrors: true, verbose: true });
 
 const countryCodeLookup = {};
 Object.entries(countriesList).forEach(([code, data]) => {
@@ -19,28 +19,38 @@ Object.entries(countriesList).forEach(([code, data]) => {
 // Given a commitmentData object, validate it and return a list of errors
 const validate = commitmentData => {
   const { postalCode, country } = commitmentData;
-  let errors = [];
 
-  // Basic JSON validation: Name + Email
+  // errors is a hash of error messages for each field key
+  let errors = {};
+
+  // Basic JSON validation: Name, Email, commmitments
   const valid = ajv.validate(schema, commitmentData);
   if (!valid) {
-    errors = errors.concat(ajv.errorsText());
+    ajv.errors.forEach(error => {
+      const key = error.dataPath.substring(1) // Strip off the '.' prefix
+      errors[key] = error.message;
+    })
   }
 
   // Country Validation
   const countries = Object.values(countriesList).map(c => c.name);
 
-  // TODO: Will only need to do this serverside, as frontend countries will
-  // be from a dropdown
   if (countries.indexOf(country) === -1) {
-    errors.push(`Bad country: ${country}`);
+    errors.country = `Bad country: ${country}`;
   }
 
+  // If a country has been selected, we can validate the postalCode
+  // TODO: For now, no need to be so strict. Perhaps we won't even use
+  // postalCode to slice data since cardinality is so high.
+  /*
   const countryCode = countryCodeLookup[country];
-  const pcResult = postalCodes.validate(countryCode, postalCode);
-  if (pcResult !== true) {
-    errors.push(pcResult);
+  if (countryCode) {
+    const pcResult = postalCodes.validate(countryCode, postalCode);
+    if (pcResult !== true) {
+      errors.postalCode = pcResult;
+    }
   }
+  */
 
   return errors;
 };
