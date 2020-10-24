@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Form from 'react-bootstrap/Form';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
@@ -12,25 +12,31 @@ import {
   PrevStep,
 } from '../commitment_components/StepNavigator';
 import withFirebase from '../components/withFirebase';
+import loadRecaptcha from '../recaptcha';
 
 const countries = Object.values(countriesList).map(c => c.name);
 
+const validateForm = values => {
+  // The validation module is stricter than we need to be. Only
+  // prevent submission on certain validation errors.
+  const strictFields = ['email'];
+  const strictErrors = validate(values);
+
+  const filteredErrors = {};
+  Object.entries(strictErrors).forEach(([field, error]) => {
+    if (strictFields.indexOf(field) !== -1) {
+      filteredErrors[field] = error;
+    }
+  });
+
+  return filteredErrors;
+};
+
 const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
-  const validateForm = values => {
-    // The validation module is stricter than we need to be. Only
-    // prevent submission on certain validation errors.
-    const strictFields = ['email'];
-    const strictErrors = validate(values);
-
-    const filteredErrors = {};
-    Object.entries(strictErrors).forEach(([field, error]) => {
-      if (strictFields.indexOf(field) !== -1) {
-        filteredErrors[field] = error;
-      }
-    });
-
-    return filteredErrors;
-  };
+  useEffect(() => {
+    loadRecaptcha();
+    // TODO handle when adblockers prevent script fetch
+  });
 
   const submitCommitment = (values, { setSubmitting, setStatus }) => {
     setStatus(null);
@@ -64,21 +70,32 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
       .functions()
       .httpsCallable('createCommitment');
 
-    return createCommitment(commitmentData)
-      .then(result => {
-        setUserState({
-          ...userState,
-          name,
-          email,
-          postalCode,
-          country,
+    // Recaptcha protection against bot spam form submission
+    // TODO handle when grecaptcha is not defined (show error message about ad blockers?)
+    grecaptcha.ready(() => {
+      grecaptcha
+        .execute(process.env.RECAPTCHA_SITE_KEY, { action: 'submit' })
+        .then(token => {
+          commitmentData.recaptchaToken = token;
+
+          // Submit the commitment!
+          createCommitment(commitmentData)
+            .then(result => {
+              setUserState({
+                ...userState,
+                name,
+                email,
+                postalCode,
+                country,
+              });
+              setSubmitting(false);
+              setStep(step + 1);
+            })
+            .catch(err => {
+              setStatus(`Problem submitting: ${err}`);
+            });
         });
-        setSubmitting(false);
-        setStep(step + 1);
-      })
-      .catch(err => {
-        setStatus(`Problem submitting: ${err}`);
-      });
+    });
   };
 
   return (
