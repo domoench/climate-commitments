@@ -71,31 +71,36 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
       .httpsCallable('createCommitment');
 
     // Recaptcha protection against bot spam form submission
-    // TODO handle when grecaptcha is not defined (show error message about ad blockers?)
-    grecaptcha.ready(() => {
-      grecaptcha
-        .execute(process.env.RECAPTCHA_SITE_KEY, { action: 'submit' })
-        .then(token => {
-          commitmentData.recaptchaToken = token;
+    if (typeof grecaptcha === 'undefined') {
+      setStatus(
+        "This form is protected against spam by Google Recaptcha. If you're using ad-blockers, please disable them temporarily to submit."
+      );
+    } else {
+      grecaptcha.ready(() => {
+        grecaptcha
+          .execute(process.env.RECAPTCHA_SITE_KEY, { action: 'submit' })
+          .then(token => {
+            commitmentData.recaptchaToken = token;
 
-          // Submit the commitment!
-          createCommitment(commitmentData)
-            .then(result => {
-              setUserState({
-                ...userState,
-                name,
-                email,
-                postalCode,
-                country,
+            // Submit the commitment!
+            createCommitment(commitmentData)
+              .then(result => {
+                setUserState({
+                  ...userState,
+                  name,
+                  email,
+                  postalCode,
+                  country,
+                });
+                setSubmitting(false);
+                setStep(step + 1);
+              })
+              .catch(err => {
+                setStatus(`Problem submitting: ${err}`);
               });
-              setSubmitting(false);
-              setStep(step + 1);
-            })
-            .catch(err => {
-              setStatus(`Problem submitting: ${err}`);
-            });
-        });
-    });
+          });
+      });
+    }
   };
 
   return (
