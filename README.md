@@ -40,6 +40,12 @@ starting point.
     FIREBASE_MESSAGING_SENDER_ID=
     FIREBASE_APP_ID=
     ```
+1. Create [functions environment config](https://firebase.google.com/docs/functions/config-env)
+   local [JSON file](https://firebase.google.com/docs/functions/local-emulator#set_up_functions_configuration_optional) in the
+   functions subdirectory:
+   ```
+   firebase functions:config:get > .runtimeconfig.json
+   ```
 
 ### Running the dev frontend + firebase emulator backend
 
@@ -75,4 +81,10 @@ firebase deploy --only functions
 # Production
 firebase use production
 firebase deploy --only functions
+```
+
+Setting [functions environment config](https://firebase.google.com/docs/functions/config-env) values. For example to set staging env values:
+```sh
+firebase use staging
+firebase functions:config:set recaptcha.secret="BLAHBLAHBLAH"
 ```
