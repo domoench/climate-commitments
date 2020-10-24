@@ -47,10 +47,10 @@ module.exports = {
           type: 'boolean',
         },
       },
-      required: ['callBank', 'callRep', 'talk', 'participate', 'divestment'],
       additionalProperties: false,
+      required: ['callBank', 'callRep', 'talk', 'participate', 'divestment'],
     },
-    additionalProperties: false,
   },
   required: ['email', 'country', 'commitments'],
+  additionalProperties: false,
 };

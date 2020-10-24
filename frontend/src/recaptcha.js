@@ -1,5 +1,5 @@
-// As far as I can tell there's no canonical way to get the recpatcha API
-// via npm, so we have to dynamically load the script
+// As far as I can tell there's no canonical way to get the recaptcha
+// client lib via npm, so we have to dynamically load the script.
 const loadRecaptcha = () => {
   const siteKey = process.env.RECAPTCHA_SITE_KEY;
   if (!siteKey) {

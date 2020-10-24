@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Form from 'react-bootstrap/Form';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
@@ -35,7 +35,6 @@ const validateForm = values => {
 const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
   useEffect(() => {
     loadRecaptcha();
-    // TODO handle when adblockers prevent script fetch
   });
 
   const submitCommitment = (values, { setSubmitting, setStatus }) => {
@@ -73,7 +72,7 @@ const Signup = ({ firebase, step, setStep, userState, setUserState }) => {
     // Recaptcha protection against bot spam form submission
     if (typeof grecaptcha === 'undefined') {
       setStatus(
-        "This form is protected against spam by Google Recaptcha. If you're using ad-blockers, please disable them temporarily to submit."
+        "This form uses reCAPTCHA to protect against spam. If you're using ad-blockers, please disable them temporarily to submit this form."
       );
     } else {
       grecaptcha.ready(() => {
