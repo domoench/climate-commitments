@@ -1,6 +1,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const validation = require('./validation/index.js');
+const { recaptchaVerify } = require('./recaptcha.js');
 
 const firebaseApp = admin.initializeApp(functions.config().firebase);
 const db = firebaseApp.firestore();
@@ -8,29 +9,49 @@ const db = firebaseApp.firestore();
 class DuplicateEmailError extends Error {}
 
 exports.createCommitment = functions.https.onCall(async (data, context) => {
-  const { commitments } = data;
-  let { postalCode, name } = data;
+  // Filter incoming data to only the keys we want to persist to database.
+  // This ensures we don't persist the recaptcha token, nor any additional
+  // fields a malicious request might have appended.
+  const allowedKeys = new Set([
+    'name',
+    'email',
+    'postalCode',
+    'country',
+    'commitments',
+  ]);
+  const dataToPersist = Object.entries(data).reduce((acc, [key, val]) => {
+    if (allowedKeys.has(key)) {
+      acc[key] = val;
+    }
+    return acc;
+  }, {});
 
-  // Validate input data
-  const errors = validation.validate(data);
+  // Validate input data that we plan to persist
+  const errors = validation.validate(dataToPersist);
   if (Object.keys(errors).length) {
-    throw new functions.https.HttpsError('invalid-argument', JSON.stringify(errors));
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      JSON.stringify(errors)
+    );
   }
 
-  // If no name submitted they chose to be anonymous
-  name = name === '' ? 'Anonymous' : name;
+  // Recaptcha verification. Throws an error if verification fails.
+  const commitmentId = dataToPersist.email;
+  try {
+    await recaptchaVerify(data.recaptchaToken)
+  } catch (e) {
+    console.error(`Recaptcha error for ${commitmentId}:`, e);
+    throw new functions.https.HttpsError('internal', 'Recaptcha failure.');
+  }
 
-  // Handle un-entered postalCode code. Empty string breaks firestore dot notation
-  // https://firebase.google.com/docs/firestore/manage-data/add-data#update_fields_in_nested_objects
-  postalCode = postalCode === '' ? 'none' : postalCode;
+  // Normalize optional fields
+  let { postalCode, name } = dataToPersist;
+  dataToPersist.name = name === '' ? 'Anonymous' : name;
+  dataToPersist.postalCode = postalCode === '' ? 'none' : postalCode;
 
-  const commitmentData = {
-    ...data,
-    postalCode,
-    createdAt: new Date(),
-  };
+  // Inject metadata
+  dataToPersist.createdAt = new Date();
 
-  const commitmentId = data.email;
   const commitmentRef = db.collection('commitments').doc(commitmentId);
   const aggregateRef = db.collection('aggregate').doc('all');
 
@@ -53,7 +74,7 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
           `Commitments previously submitted for ${commitmentId}.`
         );
       }
-      await transaction.set(commitmentRef, commitmentData);
+      await transaction.set(commitmentRef, dataToPersist);
 
       // III. Create/Update aggregate doc
       // Aggregate doc shape is:
@@ -61,20 +82,20 @@ exports.createCommitment = functions.https.onCall(async (data, context) => {
       //     commitments: [...]
       //   }
       if (!aggregateDoc.exists) {
-        const newCommitments = { commitments: [commitmentData] };
+        const newCommitments = { commitments: [dataToPersist] };
         console.log('Creating aggr doc. newCommitments', newCommitments);
         transaction.set(aggregateRef, newCommitments);
       } else {
         const preExistingCommitments = aggregateDoc.data().commitments;
         const newCommitments = {
-          commitments: [...preExistingCommitments, commitmentData],
+          commitments: [...preExistingCommitments, dataToPersist],
         };
         console.log('Updating aggr doc. newCommitments', newCommitments);
         transaction.update(aggregateRef, newCommitments);
       }
     });
     // Return success result
-    return commitmentData;
+    return dataToPersist;
   } catch (e) {
     console.error('Transaction failure:', e);
     if (e instanceof DuplicateEmailError) {
